@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Baskets Tipprunde</title>
+<meta name="description" content="Tipprunde für die Basketball Bundesliga mit Freunden" />
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#E20074" />
+
+<!-- iOS Add-to-Home-Screen -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Tipprunde" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
+
+<!-- Schriften: Anton (Plakat-Überschriften) + Archivo (Text) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Archivo:wght@400;500;600;700;800&amp;display=swap" />
+
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-theme="magenta">
+
+<div id="app">
+  <main id="view" class="view">
+    <div class="loading-splash" id="initialLoading">
+      <div class="spinner"></div>
+      <p>Baskets Tipprunde wird geladen …</p>
+    </div>
+  </main>
+
+  <nav id="tabBar" class="tabbar" aria-label="Hauptnavigation" hidden>
+    <a href="#/dashboard" data-tab="dashboard" data-icon="home" aria-label="Übersicht"><span class="tab-label">Übersicht</span></a>
+    <a href="#/matchdays" data-tab="matchdays" data-icon="cal" aria-label="Spieltage und Bonusfragen"><span class="tab-label">Spieltage</span></a>
+    <a href="#/table" data-tab="table" data-icon="table" aria-label="BBL-Tabelle"><span class="tab-label">Tabelle</span></a>
+    <a href="#/standings" data-tab="standings" data-icon="trophy" aria-label="Gesamtwertung"><span class="tab-label">Wertung</span></a>
+    <a href="#/profile" data-tab="profile" data-icon="user" aria-label="Profil und Verwaltung"><span class="tab-label">Profil</span><span id="profileDot" class="tab-dot" hidden></span></a>
+  </nav>
+
+  <div id="toastHost" class="toast-host" role="status" aria-live="polite"></div>
+</div>
+
+<!-- Firebase (modular v10 SDK via CDN, ES modules) -->
+<script type="module" src="js/main.js"></script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

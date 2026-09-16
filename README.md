@@ -1,0 +1,237 @@
+# 🏀 Baskets Tipprunde
+
+Eine kleine Web-App für eine private BBL-Tipprunde mit Freunden. Läuft im Browser und lässt sich
+auf dem Handy (iOS & Android) wie eine App auf den Homescreen legen (PWA).
+
+- Jeder Spieltag ist einzeln tippbar (Sieger-Tipp, 1 Punkt für richtig getippten Sieger).
+- „Offene Tipps“ auf der Startseite zeigt alle Spiele der nächsten 14 Tage, unabhängig davon,
+  an welchem Wochentag sie stattfinden.
+- Jeder Spieltag wird einzeln ausgewertet (Spieltagssieger), zusätzlich zur Gesamtwertung.
+- Bonusfragen laufen als eigene "Bonusrunde" (wie ein zusätzlicher Spieltag), inkl. Fragen mit
+  mehreren richtigen Antworten (z. B. "welche 8 Teams erreichen die Playoffs?").
+- Playoffs werden wie normale Spieltage abgebildet, jedes Spiel einzeln tippbar.
+- Jedes Jahr kannst du in der Verwaltung eine neue Saison anlegen (optional inkl. Übernahme der
+  Teams aus der Vorsaison), ohne die Historie der alten Saison zu verlieren.
+
+## Wie die App technisch funktioniert
+
+Es ist eine reine HTML/CSS/JavaScript-Seite ganz ohne Build-Prozess (kein npm/React nötig).
+Damit deine Tipps zwischen dir und deinen Freunden synchronisiert werden, nutzt die App
+**Firebase** (Google) im Hintergrund:
+
+- **Firebase Authentication** – jeder registriert sich mit eigener E-Mail/Passwort.
+- **Cloud Firestore** – die Datenbank, in der Saison, Spiele, Tipps etc. gespeichert werden.
+
+Beides ist im kostenlosen Firebase-Tarif ("Spark") für eine kleine Tipprunde völlig ausreichend
+und kostet nichts.
+
+**Wichtig zum Sicherheitsmodell:** Es gibt kein zusätzliches Admin-Passwort – wer verwalten darf
+(Saison/Teams/Spieltage/Ergebnisse/Bonusfragen), wird stattdessen über eine feste Liste von
+E-Mail-Adressen gesteuert (Datei `config/appConfig` in Firestore, siehe Schritt 1). Alle anderen
+angemeldeten Nutzer:innen können weiterhin nur tippen, sehen aber unter „Profil“ keinen Eintrag
+„Verwaltung“. Ein direkter Datenbankzugriff (z. B. über die Browser-Konsole) könnte theoretisch
+fremde Tipps einsehen, bevor ein Spiel beginnt – die App selbst zeigt anderen aber nirgends fremde
+Einzel-Tipps vor Spielbeginn an.
+
+---
+
+## 1. Firebase-Projekt einrichten (einmalig)
+
+Das musst du selbst tun, da dafür ein eigenes Google-Konto nötig ist.
+
+1. Gehe zu [console.firebase.google.com](https://console.firebase.google.com) und melde dich mit
+   einem Google-Konto an.
+2. **Projekt hinzufügen** → Namen vergeben, z. B. `baskets-tipprunde` → Google Analytics kannst du
+   deaktivieren (wird nicht gebraucht) → Projekt erstellen.
+3. Im Projekt links auf **Build → Authentication** → "Los geht's" → Tab **Sign-in method** →
+   **E-Mail/Passwort** aktivieren und speichern.
+4. Links auf **Build → Firestore Database** → **Datenbank erstellen** → Standort wählen (z. B.
+   `eur3 (europe-west)`) → im **Produktionsmodus** starten.
+5. Danach auf den Tab **Regeln** und den Inhalt der Datei [`firestore.rules`](firestore.rules) aus
+   diesem Projekt komplett hineinkopieren (vorhandenen Text ersetzen) → **Veröffentlichen**.
+6. Zurück zur Projektübersicht (Zahnrad oben links → **Projekteinstellungen**) → ganz unten bei
+   "Meine Apps" auf das Web-Symbol `</>` klicken → App registrieren (Name z. B. "Tipprunde-Web",
+   Firebase Hosting NICHT aktivieren) → Firebase zeigt dir jetzt einen Code-Block mit
+   `firebaseConfig = { apiKey: ..., ... }`.
+7. Öffne in diesem Projekt die Datei [`js/firebase-config.js`](js/firebase-config.js) und trage
+   dort genau diese Werte ein (die Platzhalter `DEIN_...` ersetzen).
+8. **Admins festlegen:** Im Firestore-Tab **Daten** → **Startsammlung erstellen** → Sammlungs-ID
+   `config` → Dokument-ID `appConfig` → ein Feld hinzufügen: Name `adminEmails`, Typ **Array**, und
+   darin die E-Mail-Adressen aller Admins/Spielleiter eintragen (z. B. deine eigene und die deines
+   Kumpels, mit denen ihr euch später auch in der App registriert). Nur diese Adressen sehen die
+   „Verwaltung“ (unter „Profil“) und dürfen Ergebnisse eintragen. Weitere Admins könnt ihr später einfach durch
+   Bearbeiten dieses Arrays hinzufügen/entfernen.
+
+Das war's – ab jetzt läuft die Datenbank im Hintergrund.
+
+---
+
+## 2. App auf GitHub Pages veröffentlichen
+
+1. Erstelle auf [github.com](https://github.com) ein neues, **privates oder öffentliches**
+   Repository, z. B. `baskets-tipprunde`.
+2. Lade den kompletten Inhalt dieses Projektordners in das Repository hoch (z. B. per
+   Drag & Drop im Browser über "Add file → Upload files", oder über Git):
+
+   ```bash
+   cd "Baskets Tipprunde"
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin https://github.com/DEIN-NUTZERNAME/baskets-tipprunde.git
+   git push -u origin main
+   ```
+
+3. Im Repository: **Settings → Pages** → unter "Build and deployment" als Quelle
+   **Deploy from a branch** wählen, Branch `main`, Ordner `/ (root)` → **Save**.
+4. Nach ein bis zwei Minuten ist die Seite erreichbar unter
+   `https://DEIN-NUTZERNAME.github.io/baskets-tipprunde/`.
+5. Falls du ein **privates** Repo nutzt: GitHub Pages für private Repos benötigt GitHub Pro (oder
+   ein Organisations-Konto). Alternativ das Repo öffentlich lassen – ohne Zugangsdaten aus
+   `firebase-config.js` mit hochzuladen ist das kein Sicherheitsproblem, da der Zugriff auf die
+   Daten über die Firestore-Regeln (nur angemeldete Nutzer) abgesichert ist.
+
+Diesen Link teilst du mit deinen Freunden.
+
+---
+
+## 3. Nutzer:innen einrichten
+
+Jede:r Freund:in öffnet den GitHub-Pages-Link und registriert sich selbst über den Tab
+**"Registrieren"** mit E-Mail, Passwort und Anzeigename (der Name erscheint in der Bestenliste).
+Ein eigenes Konto pro Person ist nötig, damit Tipps eindeutig zugeordnet werden können. Admins/
+Spielleiter registrieren sich genauso normal – wichtig ist nur, dass ihre E-Mail-Adresse exakt in
+`config/appConfig.adminEmails` steht (siehe Schritt 1.8), dann schaltet sich die Verwaltung nach
+dem Login automatisch für sie frei.
+
+---
+
+## 4. Als App auf dem Handy installieren
+
+**iPhone (Safari):**
+1. Link im Safari-Browser öffnen (muss Safari sein, nicht Chrome).
+2. Teilen-Symbol (Quadrat mit Pfeil) → **Zum Home-Bildschirm**.
+
+**Android (Chrome):**
+1. Link in Chrome öffnen.
+2. Menü (drei Punkte) → **App installieren** bzw. **Zum Startbildschirm hinzufügen**.
+
+Die App startet danach ohne Browser-Leiste, wie eine normale App, inkl. eigenem Icon.
+
+---
+
+## 5. Saison einrichten (Verwaltung)
+
+Unter **Profil → Verwaltung** legst du Schritt für Schritt an:
+
+1. **Tab „Saison“**: Neue Saison anlegen (z. B. "2026/2027") und danach mit **Aktivieren** als
+   aktive Saison markieren – nur die aktive Saison wird Nutzer:innen angezeigt.
+2. **Tab „Teams“**: Alle Vereine der Liga eintragen (Name + Kürzel). Das Kürzel (z. B. BON, ALB)
+   steht in den runden Tipp-Buttons; für die BBL-Teams schlägt die App passende Kürzel automatisch
+   vor, ändern kannst du sie direkt in der Teamliste.
+3. **Tab „Spieltage“**: Statt jedes Spiel einzeln anzulegen, gibt es den Kasten
+   **„Spielplan-Massenimport“**: dort einen kompletten Spielplan einfügen (ein Spiel pro Zeile,
+   Format `Spieltag;Datum;Uhrzeit;Heimteam;Auswärtsteam`) und auf **„Spielplan importieren“**
+   klicken — Teams und Spieltage werden dabei automatisch mit angelegt. Für die Saison 2026/2027
+   liegt die fertige Datei [`spielplan-2026-27-import.txt`](spielplan-2026-27-import.txt) bereits
+   im Projekt (Inhalt inkl. der `#`-Kommentarzeilen einfach hineinkopieren). Für Playoffs bzw.
+   künftige Saisons einzelne Spiele weiterhin manuell über die Formulare darunter anlegen. Auch
+   nach dem Import können Anstoßzeiten über „Anstoß ändern“ korrigiert werden (relevant, da die
+   BBL Termine wegen TV-Übertragungen öfter noch verschiebt) und Ergebnisse eingetragen werden
+   (Button „Ergebnis eintragen“ direkt in der Spieltag-Detailansicht oder in der Verwaltung).
+4. **Tab „Bonusfragen“**: Eine Bonusrunde anlegen (z. B. "Saisonprognose"), optional mit
+   Abgabefrist. Darin Fragen hinzufügen:
+   - **Einzelauswahl**: genau eine richtige Antwort (z. B. "Wer wird Meister?").
+   - **Mehrfachauswahl**: mehrere richtige Antworten, z. B. "Welche 8 Teams erreichen die
+     Playoffs?" → Typ Mehrfachauswahl, Anzahl auszuwählender Antworten = 8, alle Teams als
+     Antwortmöglichkeiten eintragen (eine pro Zeile). Punkte pro richtiger Auswahl sind frei
+     wählbar (z. B. 1 Punkt pro korrekt getipptem Team).
+   - Sobald das echte Ergebnis feststeht, bei der Frage auf **„Auflösen“** klicken und die
+     tatsächlich richtige(n) Antwort(en) auswählen – die Punkte werden danach automatisch für
+     alle berechnet.
+
+## 6. Jährliche Anpassung an die neue Saison
+
+Du musst den Code nicht anfassen! Einfach im Tab „Saison“ eine neue Saison anlegen (optional die
+Teams aus der Vorsaison übernehmen, falls sich die Liga kaum ändert, und danach einzelne Teams
+ergänzen/löschen), dann Spieltage/Spiele/Bonusfragen für die neue Saison anlegen und sie über
+„Aktivieren“ scharfschalten. Die alte Saison bleibt inkl. alter Tipps und Tabellen vollständig
+erhalten und ist über das Dropdown in der Verwaltung weiterhin einsehbar.
+
+---
+
+## 7. Automatischer Spielplan-/Ergebnis-Check (optional)
+
+Im Tab **„Änderungen“** in der Verwaltung gibt es eine Warteschlange für automatisch erkannte
+Änderungen (z. B. verschobene Anstoßzeiten oder Endergebnisse). Ein separater, täglich laufender
+Hintergrund-Job kann dort Vorschläge ablegen (`pendingChanges`-Sammlung in Firestore) – er ändert
+**nie direkt** ein Spiel, sondern nur nach deiner Bestätigung per Klick auf „Übernehmen“. Ein
+Zähler am Profil-Symbol der unteren Leiste (und an „Verwaltung“ im Profil) zeigt an, wenn etwas wartet.
+
+Der Job braucht dafür keinen eigenen Bot-Account mehr – er läuft mit den Zugangsdaten eines echten
+Admin-Kontos (z. B. deinem eigenen), da `pendingChanges` laut den Sicherheitsregeln nur von Admins
+beschrieben werden darf. Einzige Voraussetzung ist eine tatsächlich eingerichtete Firebase-Instanz
+(siehe Schritt 1 oben) – ohne echte Datenbank kann der Job nichts eintragen. Beachte: Änderst du
+später dein Passwort, muss die im Job hinterlegte Zugangsdaten-Kopie mit aktualisiert werden.
+
+Sobald Firebase eingerichtet ist, kann ein täglicher Cloud-Agent (Claude-Scheduled-Task) angelegt
+werden, der den offiziellen BBL-Spielplan/die Ergebnisse abruft, mit den gespeicherten Spielen
+vergleicht und Abweichungen als Vorschlag in `pendingChanges` ablegt.
+
+---
+
+## 8. Push-Erinnerungen für offene Tipps (optional)
+
+Nutzer:innen können in ihrem **Profil** auf „🔔 Benachrichtigungen aktivieren“ klicken, um eine
+Erinnerung zu bekommen, wenn sie kurz vor knapp noch nicht getippt haben. In der Verwaltung
+(Tab „Saison“) stellst du als Admin ein, wie viele Stunden vorher das sein soll (Standard: 12h) –
+das gilt sowohl für Spiele als auch für Bonusfragen-Fristen.
+
+**Wichtig für iPhones:** Push-Benachrichtigungen funktionieren auf iOS nur innerhalb einer über
+„Zum Home-Bildschirm hinzufügen“ installierten PWA, nicht in einem normalen Safari-Tab. Auf
+Android/Desktop-Chrome funktioniert es auch im Browser.
+
+Damit das tatsächlich funktioniert, fehlen noch zwei Dinge:
+
+1. **Cloud Messaging aktivieren:** Firebase-Konsole → Projekteinstellungen → Tab
+   **Cloud Messaging** → unter „Web-Push-Zertifikate“ ein Schlüsselpaar generieren → den Wert in
+   [`js/firebase-config.js`](js/firebase-config.js) bei `vapidKey` eintragen. Außerdem die
+   `firebaseConfig`-Werte (dieselben wie in `firebase-config.js`) oben in
+   [`service-worker.js`](service-worker.js) eintragen (ein Service Worker kann die Werte nicht
+   direkt aus der App-Datei importieren, deshalb stehen sie dort zusätzlich einmal).
+2. **Den stündlichen Versand einrichten:** Ein Cloud-Agent (ähnlich wie der tägliche
+   Spielplan-Check) müsste stündlich prüfen, welche Spiele/Bonusfragen in den nächsten X Stunden
+   fällig sind, wer dafür noch nicht getippt hat (und noch keine Erinnerung dafür bekommen hat –
+   das wird in der Sammlung `remindersSent` vermerkt, um Doppel-Benachrichtigungen zu vermeiden),
+   und den eigentlichen Versand über die Firebase-Cloud-Messaging-API auslösen. Das richte ich mit
+   dir ein, sobald Firebase live ist.
+
+---
+
+## Projektstruktur
+
+```
+index.html              App-Grundgerüst
+manifest.json           PWA-Manifest (Name, Icons, Startverhalten)
+service-worker.js       Offline-Caching für installierte App
+firestore.rules         Sicherheitsregeln für die Datenbank
+css/style.css           Gesamtes Styling (Plakat-Design: Magenta, Anton + Archivo)
+js/firebase-config.js   Deine Firebase-Projektdaten (hier eintragen!)
+js/firebase.js          Firebase-Initialisierung
+js/data.js              Alle Datenbankzugriffe (Firestore)
+js/scoring.js           Punkteberechnung
+js/auth.js              Login/Registrierung
+js/router.js            Einfaches Hash-Routing
+js/main.js              App-Einstiegspunkt, untere Navigationsleiste
+js/ui.js                Design-Bausteine (Icons, Kopfbereich, Team-Kürzel)
+js/views/               Eine Datei pro Ansicht (Dashboard, Spieltage, Verwaltung, …)
+icons/                  App-Icons (PWA + iOS)
+```
+
+## Bekannte Grenzen
+
+- Keine Push-Benachrichtigungen (die "offenen Tipps"-Liste musst du aktiv in der App ansehen).
+- Kein Admin-Passwort – Vertrauensbasis unter Freunden (siehe oben).
+- Bei einem Basketball-Ergebnis mit Punktegleichstand (praktisch nie der Fall) wertet die App das
+  neutral als "unentschieden", niemand bekommt dafür einen Punkt.

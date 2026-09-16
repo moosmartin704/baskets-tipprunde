@@ -1,0 +1,323 @@
+# easyCredit BBL Spielplan 2026/2027 - Hauptrunde (34 Spieltage, 306 Spiele)
+# Quelle: offizieller vorlaeufiger Spielplan der easyCredit BBL, Stand 02.08.2026
+# https://cms.easycredit-bbl.de/wp-content/uploads/2026/08/Spielplan_Saison26_27_030826.pdf
+#
+# WICHTIG: Das ist ein VORLAEUFIGER Spielplan. Anstosszeiten aendern sich bei der BBL
+# haeufig noch wegen TV-Terminen - vor dem jeweiligen Spieltag ggf. auf easycredit-bbl.de
+# gegenchecken und in der Verwaltung ueber 'Anstoss aendern' korrigieren.
+#
+# Bei diesen 3 Spielen stand zum Zeitpunkt des Downloads noch KEINE Uhrzeit fest -
+# hier wurde 20:00 Uhr nur als Platzhalter eingetragen, bitte vor dem Spieltag pruefen:
+#   - Spieltag 1: SKYLINERS - Fitness First Wuerzburg Baskets (20.09.2026)
+#   - Spieltag 3: ROSTOCK SEAWOLVES - FC Bayern Muenchen Basketball (01.11.2026)
+#   - Spieltag 7: VET-CONCEPT Gladiators Trier - FC Bayern Muenchen Basketball (01.11.2026)
+#
+# Playoffs stehen noch nicht fest (Teilnehmer/Termine erst nach der Hauptrunde bekannt) -
+# die legst du nach Saisonende manuell in der Verwaltung an.
+#
+1;01.10.2026;20:00;Science City Jena;RASTA Vechta
+1;18.09.2026;20:00;ALBA BERLIN;NINERS Chemnitz
+1;19.09.2026;18:30;ROSTOCK SEAWOLVES;Phoenix Hagen
+1;19.09.2026;18:30;Basketball Löwen Braunschweig;VET-CONCEPT Gladiators Trier
+1;19.09.2026;20:00;Telekom Baskets Bonn;Veolia Towers Hamburg
+1;20.09.2026;20:00;SKYLINERS;Fitness First Würzburg Baskets
+1;20.09.2026;15:00;EWE Baskets Oldenburg;SYNTAINICS MBC
+1;20.09.2026;16:30;ratiopharm ulm;MHP RIESEN Ludwigsburg
+1;20.09.2026;18:00;FC Bayern München Basketball;BMA365 Bamberg Baskets
+2;03.11.2026;20:00;FC Bayern München Basketball;Basketball Löwen Braunschweig
+2;24.09.2026;18:30;ALBA BERLIN;SKYLINERS
+2;24.09.2026;20:00;MHP RIESEN Ludwigsburg;ROSTOCK SEAWOLVES
+2;24.09.2026;20:00;RASTA Vechta;BMA365 Bamberg Baskets
+2;25.09.2026;18:30;VET-CONCEPT Gladiators Trier;Telekom Baskets Bonn
+2;25.09.2026;18:30;Phoenix Hagen;ratiopharm ulm
+2;25.09.2026;20:00;SYNTAINICS MBC;Science City Jena
+2;25.09.2026;20:00;Fitness First Würzburg Baskets;EWE Baskets Oldenburg
+2;25.09.2026;20:00;Veolia Towers Hamburg;NINERS Chemnitz
+3;01.11.2026;20:00;ROSTOCK SEAWOLVES;FC Bayern München Basketball
+3;16.12.2026;20:00;Basketball Löwen Braunschweig;ALBA BERLIN
+3;26.09.2026;18:30;SKYLINERS;RASTA Vechta
+3;26.09.2026;20:00;BMA365 Bamberg Baskets;MHP RIESEN Ludwigsburg
+3;27.09.2026;15:00;Telekom Baskets Bonn;SYNTAINICS MBC
+3;27.09.2026;15:00;VET-CONCEPT Gladiators Trier;Science City Jena
+3;27.09.2026;16:30;NINERS Chemnitz;Phoenix Hagen
+3;27.09.2026;16:30;EWE Baskets Oldenburg;Veolia Towers Hamburg
+3;27.09.2026;18:00;ratiopharm ulm;Fitness First Würzburg Baskets
+4;02.10.2026;20:00;Fitness First Würzburg Baskets;Telekom Baskets Bonn
+4;03.10.2026;16:30;Veolia Towers Hamburg;ROSTOCK SEAWOLVES
+4;03.10.2026;18:30;ALBA BERLIN;BMA365 Bamberg Baskets
+4;03.10.2026;20:00;SYNTAINICS MBC;ratiopharm ulm
+4;04.10.2026;15:00;FC Bayern München Basketball;EWE Baskets Oldenburg
+4;04.10.2026;15:00;Phoenix Hagen;SKYLINERS
+4;04.10.2026;16:30;Science City Jena;NINERS Chemnitz
+4;04.10.2026;18:00;MHP RIESEN Ludwigsburg;VET-CONCEPT Gladiators Trier
+4;05.10.2026;20:00;RASTA Vechta;Basketball Löwen Braunschweig
+5;09.10.2026;20:00;Telekom Baskets Bonn;Science City Jena
+5;10.10.2026;18:30;ROSTOCK SEAWOLVES;Fitness First Würzburg Baskets
+5;10.10.2026;18:30;BMA365 Bamberg Baskets;SYNTAINICS MBC
+5;10.10.2026;20:00;EWE Baskets Oldenburg;Phoenix Hagen
+5;10.10.2026;20:00;VET-CONCEPT Gladiators Trier;ALBA BERLIN
+5;10.10.2026;20:00;RASTA Vechta;ratiopharm ulm
+5;11.10.2026;15:00;Basketball Löwen Braunschweig;MHP RIESEN Ludwigsburg
+5;11.10.2026;16:30;SKYLINERS;Veolia Towers Hamburg
+5;11.10.2026;18:00;NINERS Chemnitz;FC Bayern München Basketball
+6;23.10.2026;20:00;EWE Baskets Oldenburg;BMA365 Bamberg Baskets
+6;24.10.2026;18:30;Science City Jena;SKYLINERS
+6;24.10.2026;18:30;SYNTAINICS MBC;ROSTOCK SEAWOLVES
+6;24.10.2026;20:00;MHP RIESEN Ludwigsburg;Telekom Baskets Bonn
+6;24.10.2026;20:00;RASTA Vechta;VET-CONCEPT Gladiators Trier
+6;25.10.2026;15:00;Phoenix Hagen;Basketball Löwen Braunschweig
+6;25.10.2026;16:30;FC Bayern München Basketball;Veolia Towers Hamburg
+6;25.10.2026;18:00;ALBA BERLIN;ratiopharm ulm
+6;26.10.2026;20:00;Fitness First Würzburg Baskets;NINERS Chemnitz
+7;01.11.2026;20:00;VET-CONCEPT Gladiators Trier;FC Bayern München Basketball
+7;01.11.2026;16:30;Veolia Towers Hamburg;SYNTAINICS MBC
+7;01.11.2026;18:00;Telekom Baskets Bonn;ALBA BERLIN
+7;20.01.2027;20:00;SKYLINERS;ROSTOCK SEAWOLVES
+7;30.10.2026;20:00;Phoenix Hagen;RASTA Vechta
+7;31.10.2026;18:30;ratiopharm ulm;EWE Baskets Oldenburg
+7;31.10.2026;18:30;Basketball Löwen Braunschweig;Fitness First Würzburg Baskets
+7;31.10.2026;20:00;NINERS Chemnitz;MHP RIESEN Ludwigsburg
+7;31.10.2026;20:00;BMA365 Bamberg Baskets;Science City Jena
+8;05.11.2026;20:00;RASTA Vechta;NINERS Chemnitz
+8;06.11.2026;20:00;ALBA BERLIN;Phoenix Hagen
+8;07.11.2026;18:30;VET-CONCEPT Gladiators Trier;BMA365 Bamberg Baskets
+8;07.11.2026;18:30;ROSTOCK SEAWOLVES;ratiopharm ulm
+8;07.11.2026;20:00;Telekom Baskets Bonn;Basketball Löwen Braunschweig
+8;08.11.2026;15:00;SYNTAINICS MBC;SKYLINERS
+8;08.11.2026;16:30;MHP RIESEN Ludwigsburg;EWE Baskets Oldenburg
+8;08.11.2026;18:00;Fitness First Würzburg Baskets;FC Bayern München Basketball
+8;09.11.2026;20:00;Science City Jena;Veolia Towers Hamburg
+9;13.11.2026;20:00;Phoenix Hagen;MHP RIESEN Ludwigsburg
+9;14.11.2026;18:30;BMA365 Bamberg Baskets;Telekom Baskets Bonn
+9;14.11.2026;18:30;ratiopharm ulm;Science City Jena
+9;14.11.2026;20:00;EWE Baskets Oldenburg;ALBA BERLIN
+9;14.11.2026;20:00;Veolia Towers Hamburg;Fitness First Würzburg Baskets
+9;15.11.2026;15:00;SKYLINERS;VET-CONCEPT Gladiators Trier
+9;15.11.2026;15:00;ROSTOCK SEAWOLVES;RASTA Vechta
+9;15.11.2026;16:30;FC Bayern München Basketball;SYNTAINICS MBC
+9;15.11.2026;18:00;NINERS Chemnitz;Basketball Löwen Braunschweig
+10;20.11.2026;18:30;Science City Jena;ROSTOCK SEAWOLVES
+10;20.11.2026;20:00;Fitness First Würzburg Baskets;RASTA Vechta
+10;21.11.2026;18:30;Basketball Löwen Braunschweig;BMA365 Bamberg Baskets
+10;21.11.2026;20:00;EWE Baskets Oldenburg;SKYLINERS
+10;21.11.2026;20:00;VET-CONCEPT Gladiators Trier;NINERS Chemnitz
+10;22.11.2026;15:00;MHP RIESEN Ludwigsburg;SYNTAINICS MBC
+10;22.11.2026;15:00;Telekom Baskets Bonn;ratiopharm ulm
+10;22.11.2026;16:30;Veolia Towers Hamburg;Phoenix Hagen
+10;22.11.2026;18:00;ALBA BERLIN;FC Bayern München Basketball
+11;05.12.2026;18:30;NINERS Chemnitz;ROSTOCK SEAWOLVES
+11;05.12.2026;20:00;MHP RIESEN Ludwigsburg;Fitness First Würzburg Baskets
+11;05.12.2026;20:00;RASTA Vechta;Veolia Towers Hamburg
+11;06.12.2026;15:00;SYNTAINICS MBC;ALBA BERLIN
+11;06.12.2026;15:00;EWE Baskets Oldenburg;VET-CONCEPT Gladiators Trier
+11;06.12.2026;15:00;Phoenix Hagen;Science City Jena
+11;06.12.2026;16:30;Basketball Löwen Braunschweig;SKYLINERS
+11;06.12.2026;18:00;FC Bayern München Basketball;Telekom Baskets Bonn
+11;07.12.2026;20:00;ratiopharm ulm;BMA365 Bamberg Baskets
+12;18.12.2026;15:00;VET-CONCEPT Gladiators Trier;ROSTOCK SEAWOLVES
+12;18.12.2026;20:00;Veolia Towers Hamburg;MHP RIESEN Ludwigsburg
+12;19.12.2026;18:30;NINERS Chemnitz;EWE Baskets Oldenburg
+12;19.12.2026;18:30;BMA365 Bamberg Baskets;Phoenix Hagen
+12;19.12.2026;20:00;Fitness First Würzburg Baskets;SYNTAINICS MBC
+12;20.12.2026;15:00;Telekom Baskets Bonn;SKYLINERS
+12;20.12.2026;15:00;Science City Jena;FC Bayern München Basketball
+12;20.12.2026;16:30;ALBA BERLIN;RASTA Vechta
+12;20.12.2026;18:00;Basketball Löwen Braunschweig;ratiopharm ulm
+13;26.12.2026;15:00;ROSTOCK SEAWOLVES;Basketball Löwen Braunschweig
+13;26.12.2026;16:30;Phoenix Hagen;FC Bayern München Basketball
+13;26.12.2026;18:30;ratiopharm ulm;VET-CONCEPT Gladiators Trier
+13;26.12.2026;18:30;MHP RIESEN Ludwigsburg;SKYLINERS
+13;26.12.2026;20:00;SYNTAINICS MBC;NINERS Chemnitz
+13;26.12.2026;20:00;RASTA Vechta;Telekom Baskets Bonn
+13;27.12.2026;15:00;Veolia Towers Hamburg;ALBA BERLIN
+13;27.12.2026;16:30;Science City Jena;EWE Baskets Oldenburg
+13;27.12.2026;18:00;BMA365 Bamberg Baskets;Fitness First Würzburg Baskets
+14;22.01.2027;20:00;BMA365 Bamberg Baskets;NINERS Chemnitz
+14;27.01.2027;20:00;SKYLINERS;ratiopharm ulm
+14;28.12.2026;20:00;FC Bayern München Basketball;MHP RIESEN Ludwigsburg
+14;29.12.2026;18:30;VET-CONCEPT Gladiators Trier;SYNTAINICS MBC
+14;29.12.2026;20:00;Fitness First Würzburg Baskets;Science City Jena
+14;30.12.2026;18:30;Basketball Löwen Braunschweig;Veolia Towers Hamburg
+14;30.12.2026;20:00;Telekom Baskets Bonn;Phoenix Hagen
+14;30.12.2026;20:00;RASTA Vechta;EWE Baskets Oldenburg
+14;31.12.2026;14:00;ALBA BERLIN;ROSTOCK SEAWOLVES
+15;02.01.2027;18:30;Fitness First Würzburg Baskets;VET-CONCEPT Gladiators Trier
+15;02.01.2027;18:30;ROSTOCK SEAWOLVES;Telekom Baskets Bonn
+15;02.01.2027;18:30;Veolia Towers Hamburg;BMA365 Bamberg Baskets
+15;02.01.2027;20:00;MHP RIESEN Ludwigsburg;RASTA Vechta
+15;02.01.2027;20:00;NINERS Chemnitz;SKYLINERS
+15;03.01.2027;15:00;SYNTAINICS MBC;Phoenix Hagen
+15;03.01.2027;15:00;FC Bayern München Basketball;ratiopharm ulm
+15;03.01.2027;16:30;EWE Baskets Oldenburg;Basketball Löwen Braunschweig
+15;03.01.2027;18:00;Science City Jena;ALBA BERLIN
+16;08.01.2027;20:00;RASTA Vechta;SYNTAINICS MBC
+16;09.01.2027;18:30;BMA365 Bamberg Baskets;ROSTOCK SEAWOLVES
+16;09.01.2027;18:30;VET-CONCEPT Gladiators Trier;Veolia Towers Hamburg
+16;09.01.2027;20:00;Telekom Baskets Bonn;EWE Baskets Oldenburg
+16;10.01.2027;15:00;Basketball Löwen Braunschweig;Science City Jena
+16;10.01.2027;15:00;ALBA BERLIN;MHP RIESEN Ludwigsburg
+16;10.01.2027;16:30;ratiopharm ulm;NINERS Chemnitz
+16;10.01.2027;18:00;SKYLINERS;FC Bayern München Basketball
+16;15.01.2027;20:00;Phoenix Hagen;Fitness First Würzburg Baskets
+17;16.01.2027;18:30;BMA365 Bamberg Baskets;SKYLINERS
+17;16.01.2027;20:00;MHP RIESEN Ludwigsburg;Science City Jena
+17;17.01.2027;15:00;FC Bayern München Basketball;RASTA Vechta
+17;17.01.2027;15:00;ROSTOCK SEAWOLVES;EWE Baskets Oldenburg
+17;17.01.2027;16:30;NINERS Chemnitz;Telekom Baskets Bonn
+17;17.01.2027;18:00;Phoenix Hagen;VET-CONCEPT Gladiators Trier
+17;18.01.2027;18:30;Fitness First Würzburg Baskets;ALBA BERLIN
+17;18.01.2027;20:00;Veolia Towers Hamburg;ratiopharm ulm
+17;18.01.2027;20:00;SYNTAINICS MBC;Basketball Löwen Braunschweig
+18;22.01.2027;18:30;VET-CONCEPT Gladiators Trier;Fitness First Würzburg Baskets
+18;23.01.2027;18:30;ratiopharm ulm;Telekom Baskets Bonn
+18;23.01.2027;18:30;ALBA BERLIN;Veolia Towers Hamburg
+18;23.01.2027;20:00;EWE Baskets Oldenburg;MHP RIESEN Ludwigsburg
+18;23.01.2027;20:00;RASTA Vechta;ROSTOCK SEAWOLVES
+18;24.01.2027;15:00;SKYLINERS;SYNTAINICS MBC
+18;24.01.2027;15:00;Science City Jena;Phoenix Hagen
+18;24.01.2027;16:30;Basketball Löwen Braunschweig;FC Bayern München Basketball
+18;24.01.2027;18:00;NINERS Chemnitz;BMA365 Bamberg Baskets
+19;29.01.2027;20:00;SYNTAINICS MBC;EWE Baskets Oldenburg
+19;30.01.2027;18:30;SKYLINERS;NINERS Chemnitz
+19;30.01.2027;18:30;Science City Jena;ratiopharm ulm
+19;30.01.2027;18:30;ROSTOCK SEAWOLVES;VET-CONCEPT Gladiators Trier
+19;30.01.2027;20:00;MHP RIESEN Ludwigsburg;ALBA BERLIN
+19;30.01.2027;20:00;Telekom Baskets Bonn;RASTA Vechta
+19;31.01.2027;15:00;Veolia Towers Hamburg;Basketball Löwen Braunschweig
+19;31.01.2027;16:30;Phoenix Hagen;BMA365 Bamberg Baskets
+19;31.01.2027;18:00;FC Bayern München Basketball;Fitness First Würzburg Baskets
+20;05.02.2027;20:00;RASTA Vechta;SKYLINERS
+20;06.02.2027;18:30;ratiopharm ulm;Veolia Towers Hamburg
+20;06.02.2027;18:30;Fitness First Würzburg Baskets;BMA365 Bamberg Baskets
+20;06.02.2027;20:00;MHP RIESEN Ludwigsburg;Basketball Löwen Braunschweig
+20;06.02.2027;20:00;Telekom Baskets Bonn;NINERS Chemnitz
+20;07.02.2027;15:00;ROSTOCK SEAWOLVES;Science City Jena
+20;07.02.2027;16:30;SYNTAINICS MBC;VET-CONCEPT Gladiators Trier
+20;07.02.2027;18:00;ALBA BERLIN;EWE Baskets Oldenburg
+20;08.02.2027;20:00;FC Bayern München Basketball;Phoenix Hagen
+21;12.02.2027;20:00;Science City Jena;Fitness First Würzburg Baskets
+21;13.02.2027;18:30;NINERS Chemnitz;ratiopharm ulm
+21;13.02.2027;18:30;Phoenix Hagen;SYNTAINICS MBC
+21;13.02.2027;20:00;EWE Baskets Oldenburg;ROSTOCK SEAWOLVES
+21;14.02.2027;15:00;Basketball Löwen Braunschweig;Telekom Baskets Bonn
+21;14.02.2027;15:00;SKYLINERS;ALBA BERLIN
+21;14.02.2027;15:00;VET-CONCEPT Gladiators Trier;MHP RIESEN Ludwigsburg
+21;14.02.2027;16:30;Veolia Towers Hamburg;RASTA Vechta
+21;14.02.2027;18:00;BMA365 Bamberg Baskets;FC Bayern München Basketball
+22;17.02.2027;18:30;Basketball Löwen Braunschweig;Phoenix Hagen
+22;17.02.2027;18:30;BMA365 Bamberg Baskets;VET-CONCEPT Gladiators Trier
+22;17.02.2027;18:30;ratiopharm ulm;RASTA Vechta
+22;17.02.2027;18:30;ROSTOCK SEAWOLVES;SYNTAINICS MBC
+22;17.02.2027;20:00;FC Bayern München Basketball;Science City Jena
+22;17.02.2027;20:00;Fitness First Würzburg Baskets;SKYLINERS
+22;17.02.2027;20:00;ALBA BERLIN;Telekom Baskets Bonn
+22;17.02.2027;20:00;MHP RIESEN Ludwigsburg;NINERS Chemnitz
+22;17.02.2027;20:00;Veolia Towers Hamburg;EWE Baskets Oldenburg
+23;04.03.2027;18:30;ratiopharm ulm;Basketball Löwen Braunschweig
+23;04.03.2027;18:30;NINERS Chemnitz;Science City Jena
+23;04.03.2027;20:00;ROSTOCK SEAWOLVES;BMA365 Bamberg Baskets
+23;04.03.2027;20:00;Telekom Baskets Bonn;VET-CONCEPT Gladiators Trier
+23;05.03.2027;18:30;Phoenix Hagen;Veolia Towers Hamburg
+23;05.03.2027;20:00;SYNTAINICS MBC;Fitness First Würzburg Baskets
+23;08.03.2027;20:00;RASTA Vechta;MHP RIESEN Ludwigsburg
+23;26.09.2026;15:30;FC Bayern München Basketball;ALBA BERLIN
+23;29.03.2027;15:00;SKYLINERS;EWE Baskets Oldenburg
+24;06.03.2027;18:30;ALBA BERLIN;Science City Jena
+24;06.03.2027;18:30;BMA365 Bamberg Baskets;RASTA Vechta
+24;06.03.2027;20:00;MHP RIESEN Ludwigsburg;ratiopharm ulm
+24;07.03.2027;15:00;NINERS Chemnitz;SYNTAINICS MBC
+24;07.03.2027;15:00;Fitness First Würzburg Baskets;Phoenix Hagen
+24;07.03.2027;15:00;EWE Baskets Oldenburg;FC Bayern München Basketball
+24;07.03.2027;15:00;Veolia Towers Hamburg;Telekom Baskets Bonn
+24;07.03.2027;15:00;VET-CONCEPT Gladiators Trier;SKYLINERS
+24;27.09.2026;15:00;Basketball Löwen Braunschweig;ROSTOCK SEAWOLVES
+25;12.03.2027;20:00;RASTA Vechta;Fitness First Würzburg Baskets
+25;13.03.2027;18:30;ratiopharm ulm;ALBA BERLIN
+25;13.03.2027;18:30;Science City Jena;Basketball Löwen Braunschweig
+25;13.03.2027;20:00;SYNTAINICS MBC;Veolia Towers Hamburg
+25;13.03.2027;20:00;Telekom Baskets Bonn;BMA365 Bamberg Baskets
+25;14.03.2027;15:00;FC Bayern München Basketball;VET-CONCEPT Gladiators Trier
+25;14.03.2027;15:00;ROSTOCK SEAWOLVES;MHP RIESEN Ludwigsburg
+25;14.03.2027;15:00;SKYLINERS;Phoenix Hagen
+25;14.03.2027;15:00;EWE Baskets Oldenburg;NINERS Chemnitz
+26;19.03.2027;20:00;ALBA BERLIN;SYNTAINICS MBC
+26;20.03.2027;18:30;Fitness First Würzburg Baskets;ROSTOCK SEAWOLVES
+26;20.03.2027;18:30;BMA365 Bamberg Baskets;ratiopharm ulm
+26;20.03.2027;20:00;VET-CONCEPT Gladiators Trier;RASTA Vechta
+26;21.03.2027;15:00;Phoenix Hagen;EWE Baskets Oldenburg
+26;21.03.2027;15:00;Veolia Towers Hamburg;Science City Jena
+26;21.03.2027;16:30;SKYLINERS;Telekom Baskets Bonn
+26;21.03.2027;18:00;Basketball Löwen Braunschweig;NINERS Chemnitz
+26;22.03.2027;20:00;MHP RIESEN Ludwigsburg;FC Bayern München Basketball
+27;27.03.2027;18:30;SKYLINERS;Basketball Löwen Braunschweig
+27;27.03.2027;18:30;NINERS Chemnitz;VET-CONCEPT Gladiators Trier
+27;27.03.2027;20:00;EWE Baskets Oldenburg;Fitness First Würzburg Baskets
+27;27.03.2027;20:00;ROSTOCK SEAWOLVES;Veolia Towers Hamburg
+27;28.03.2027;15:00;ratiopharm ulm;Phoenix Hagen
+27;28.03.2027;15:00;RASTA Vechta;ALBA BERLIN
+27;28.03.2027;15:00;Telekom Baskets Bonn;MHP RIESEN Ludwigsburg
+27;29.03.2027;15:00;SYNTAINICS MBC;FC Bayern München Basketball
+27;29.03.2027;18:00;Science City Jena;BMA365 Bamberg Baskets
+28;02.04.2027;20:00;VET-CONCEPT Gladiators Trier;Basketball Löwen Braunschweig
+28;03.04.2027;18:30;SKYLINERS;MHP RIESEN Ludwigsburg
+28;03.04.2027;18:30;Science City Jena;SYNTAINICS MBC
+28;03.04.2027;20:00;Fitness First Würzburg Baskets;Veolia Towers Hamburg
+28;03.04.2027;20:00;EWE Baskets Oldenburg;ratiopharm ulm
+28;04.04.2027;15:00;Phoenix Hagen;Telekom Baskets Bonn
+28;04.04.2027;15:00;BMA365 Bamberg Baskets;ALBA BERLIN
+28;05.04.2027;20:00;NINERS Chemnitz;RASTA Vechta
+28;13.04.2027;20:00;FC Bayern München Basketball;ROSTOCK SEAWOLVES
+29;09.04.2027;20:00;MHP RIESEN Ludwigsburg;Phoenix Hagen
+29;10.04.2027;18:30;ratiopharm ulm;SKYLINERS
+29;10.04.2027;18:30;Basketball Löwen Braunschweig;EWE Baskets Oldenburg
+29;10.04.2027;20:00;SYNTAINICS MBC;BMA365 Bamberg Baskets
+29;10.04.2027;20:00;RASTA Vechta;Science City Jena
+29;11.04.2027;15:00;ALBA BERLIN;VET-CONCEPT Gladiators Trier
+29;11.04.2027;15:00;ROSTOCK SEAWOLVES;NINERS Chemnitz
+29;11.04.2027;18:00;Veolia Towers Hamburg;FC Bayern München Basketball
+29;12.04.2027;20:00;Telekom Baskets Bonn;Fitness First Würzburg Baskets
+30;16.04.2027;20:00;Science City Jena;MHP RIESEN Ludwigsburg
+30;17.04.2027;18:30;Fitness First Würzburg Baskets;Basketball Löwen Braunschweig
+30;17.04.2027;20:00;VET-CONCEPT Gladiators Trier;ratiopharm ulm
+30;18.04.2027;15:00;EWE Baskets Oldenburg;Telekom Baskets Bonn
+30;18.04.2027;15:00;NINERS Chemnitz;ALBA BERLIN
+30;18.04.2027;15:00;SYNTAINICS MBC;RASTA Vechta
+30;18.04.2027;15:00;FC Bayern München Basketball;SKYLINERS
+30;18.04.2027;18:30;Phoenix Hagen;ROSTOCK SEAWOLVES
+30;19.04.2027;20:00;BMA365 Bamberg Baskets;Veolia Towers Hamburg
+31;23.04.2027;20:00;ALBA BERLIN;Fitness First Würzburg Baskets
+31;24.04.2027;18:30;ratiopharm ulm;ROSTOCK SEAWOLVES
+31;24.04.2027;20:00;MHP RIESEN Ludwigsburg;BMA365 Bamberg Baskets
+31;24.04.2027;20:00;RASTA Vechta;Phoenix Hagen
+31;25.04.2027;15:00;NINERS Chemnitz;Veolia Towers Hamburg
+31;25.04.2027;15:00;SKYLINERS;Science City Jena
+31;25.04.2027;15:00;VET-CONCEPT Gladiators Trier;EWE Baskets Oldenburg
+31;25.04.2027;15:00;Telekom Baskets Bonn;FC Bayern München Basketball
+31;26.04.2027;20:00;Basketball Löwen Braunschweig;SYNTAINICS MBC
+32;01.05.2027;18:30;Fitness First Würzburg Baskets;MHP RIESEN Ludwigsburg
+32;01.05.2027;18:30;Science City Jena;VET-CONCEPT Gladiators Trier
+32;01.05.2027;20:00;SYNTAINICS MBC;Telekom Baskets Bonn
+32;01.05.2027;20:00;BMA365 Bamberg Baskets;Basketball Löwen Braunschweig
+32;02.05.2027;15:00;Phoenix Hagen;NINERS Chemnitz
+32;02.05.2027;15:00;EWE Baskets Oldenburg;RASTA Vechta
+32;02.05.2027;15:00;ROSTOCK SEAWOLVES;ALBA BERLIN
+32;02.05.2027;15:00;Veolia Towers Hamburg;SKYLINERS
+32;30.04.2027;20:00;ratiopharm ulm;FC Bayern München Basketball
+33;05.05.2027;18:30;ratiopharm ulm;SYNTAINICS MBC
+33;05.05.2027;18:30;NINERS Chemnitz;Fitness First Würzburg Baskets
+33;05.05.2027;20:00;EWE Baskets Oldenburg;Science City Jena
+33;05.05.2027;20:00;RASTA Vechta;FC Bayern München Basketball
+33;05.05.2027;20:00;Telekom Baskets Bonn;ROSTOCK SEAWOLVES
+33;06.05.2027;18:30;SKYLINERS;BMA365 Bamberg Baskets
+33;06.05.2027;18:30;VET-CONCEPT Gladiators Trier;Phoenix Hagen
+33;06.05.2027;20:00;ALBA BERLIN;Basketball Löwen Braunschweig
+33;06.05.2027;20:00;MHP RIESEN Ludwigsburg;Veolia Towers Hamburg
+34;09.05.2027;15:00;FC Bayern München Basketball;NINERS Chemnitz
+34;09.05.2027;15:00;Basketball Löwen Braunschweig;RASTA Vechta
+34;09.05.2027;15:00;Phoenix Hagen;ALBA BERLIN
+34;09.05.2027;15:00;Fitness First Würzburg Baskets;ratiopharm ulm
+34;09.05.2027;15:00;SYNTAINICS MBC;MHP RIESEN Ludwigsburg
+34;09.05.2027;15:00;ROSTOCK SEAWOLVES;SKYLINERS
+34;09.05.2027;15:00;Veolia Towers Hamburg;VET-CONCEPT Gladiators Trier
+34;09.05.2027;15:00;BMA365 Bamberg Baskets;EWE Baskets Oldenburg
+34;09.05.2027;15:00;Science City Jena;Telekom Baskets Bonn

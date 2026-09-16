@@ -1,0 +1,82 @@
+rules_version = '2';
+
+// Sicherheitsmodell dieser App:
+// - Nur angemeldete Nutzer (deine Freunde mit eigenem Konto) dürfen überhaupt lesen/schreiben.
+// - Wer Saison, Teams, Spieltage, Ergebnisse und Bonusfragen verwalten darf, wird über eine feste
+//   Admin-Liste (E-Mail-Adressen) im Dokument config/appConfig gesteuert, kein zusätzliches
+//   Passwort. Alle anderen Nutzer können nur tippen.
+// - Eigene Tipps/Bonusantworten dürfen nur vom jeweiligen Nutzer selbst geschrieben werden,
+//   und nur solange das zugehörige Spiel/die Bonusrunde noch nicht begonnen hat.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        request.auth.token.email in
+          get(/databases/$(database)/documents/config/appConfig).data.adminEmails;
+    }
+
+    // Admin-Liste: wird einmalig manuell in der Firebase-Konsole angelegt (siehe README).
+    // Lesbar für alle angemeldeten Nutzer (damit die App weiß, wer Admin-Menüs sehen darf),
+    // änderbar nur von bestehenden Admins selbst.
+    match /config/{doc} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /seasons/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /teams/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /matchdays/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /games/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /bonusRounds/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /bonusQuestions/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /pendingChanges/{id} {
+      allow read, write: if isAdmin();
+    }
+    match /remindersSent/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /tips/{tipId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && get(/databases/$(database)/documents/games/$(request.resource.data.gameId)).data.kickoff > request.time;
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /bonusAnswers/{answerId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}
