@@ -1,16 +1,20 @@
-name: Täglicher BBL-Abgleich
+name: Stündlicher BBL-Abgleich
 
-# Läuft einmal täglich um ca. 9 Uhr deutscher Zeit. GitHub Actions kennt nur
-# UTC-Cron, deshalb 08:00 UTC gewählt (= 9 Uhr CET im Winterhalbjahr / 10 Uhr
-# CEST im Sommerhalbjahr). Die Abweichung von einer Stunde an ca. der Hälfte
-# der Tage im Jahr wurde bewusst in Kauf genommen, um die Konfiguration
-# einfach zu halten - für einen morgendlichen Ergebnis-Check ist eine Stunde
-# früher/später unkritisch. Über "workflow_dispatch" lässt sich der Job auch
-# jederzeit manuell auslösen (z. B. zum Testen), unter dem Reiter "Actions"
-# im GitHub-Repo.
+# Läuft jede volle Stunde (GitHub Actions kennt nur UTC-Cron, daher "0 * * * *"
+# statt einer lokalen Uhrzeit - das ist hier aber egal, da ohnehin stündlich
+# geprüft wird). Für ein öffentliches Repo sind GitHub-Actions-Minuten
+# unbegrenzt und kostenlos, der Lauf dauert nur ca. 20 Sekunden - stündlich
+# statt täglich kostet also nichts extra, sorgt aber dafür, dass Ergebnisse
+# spätestens eine Stunde nach Abpfiff automatisch eingetragen werden (ein
+# fester Versatz wie "2,5 Std. nach Anpfiff" wäre ungenauer, da Spiele durch
+# Verlängerung o. Ä. unterschiedlich lange dauern - und mit Cron ohnehin nicht
+# pro Spiel, sondern nur zu festen Uhrzeiten planbar). Außerhalb der
+# Spielzeiten findet der Job einfach nichts zu tun und beendet sich sofort.
+# Über "workflow_dispatch" lässt sich der Job auch jederzeit manuell auslösen
+# (z. B. zum Testen), unter dem Reiter "Actions" im GitHub-Repo.
 on:
   schedule:
-    - cron: "0 8 * * *"
+    - cron: "0 * * * *"
   workflow_dispatch: {}
 
 jobs:

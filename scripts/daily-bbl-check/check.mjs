@@ -1,5 +1,5 @@
 // ============================================================================
-// Taeglicher Abgleich mit der offiziellen easyCredit-BBL-Website.
+// Stuendlicher Abgleich mit der offiziellen easyCredit-BBL-Website.
 //
 // Was der Job macht:
 // 1. Laedt die Spiele der aktiven Saison aus Firestore.

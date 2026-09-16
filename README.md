@@ -163,9 +163,11 @@ erhalten und ist über das Dropdown in der Verwaltung weiterhin einsehbar.
 
 ## 7. Automatischer Spielplan-/Ergebnis-Check
 
-Ein täglicher GitHub-Actions-Job (`.github/workflows/daily-bbl-check.yml`, Skript in
+Ein stündlicher GitHub-Actions-Job (`.github/workflows/daily-bbl-check.yml`, Skript in
 `scripts/daily-bbl-check/`) gleicht die aktive Saison automatisch mit der offiziellen
-easyCredit-BBL-Website ab:
+easyCredit-BBL-Website ab. Stündlich statt nur einmal täglich, damit Ergebnisse spätestens eine
+Stunde nach Abpfiff eingetragen sind – für ein öffentliches Repo sind GitHub-Actions-Minuten
+unbegrenzt und kostenlos, der Lauf dauert nur ca. 20 Sekunden, häufiger prüfen kostet also nichts.
 
 - **Ergebnisse** abgeschlossener Spiele werden **direkt eingetragen** – kein Admin-Klick nötig.
   Falls doch mal etwas nicht stimmt, bleibt das Ergebnis wie gewohnt über „Ergebnis eintragen“ in
@@ -189,10 +191,9 @@ easyCredit-BBL-Website ab:
    generieren“ → JSON-Datei wird heruntergeladen (**niemals ins Repository committen!**).
 2. GitHub-Repo → **Settings → Secrets and variables → Actions → New repository secret** → Name
    `FIREBASE_SERVICE_ACCOUNT_KEY` → kompletten Inhalt der JSON-Datei einfügen → Speichern.
-3. Fertig – der Job läuft ab sofort täglich automatisch (GitHub-Actions-Cron, ca. 8 Uhr UTC ≈
-   9 Uhr deutscher Zeit; die Abweichung von einer Stunde im Sommerhalbjahr durch die Zeitumstellung
-   wurde bewusst in Kauf genommen). Manuell testen: Tab **Actions** im Repo → „Täglicher
-   BBL-Abgleich“ → **Run workflow**. Die Logs zeigen genau, was übernommen bzw. vorgeschlagen wurde.
+3. Fertig – der Job läuft ab sofort automatisch jede volle Stunde. Manuell testen: Tab **Actions**
+   im Repo → „Stündlicher BBL-Abgleich“ → **Run workflow**. Die Logs zeigen genau, was übernommen
+   bzw. vorgeschlagen wurde.
 
 Der Job nutzt bewusst ein **Firebase-Dienstkonto** (Firebase Admin SDK) statt der Zugangsdaten
 eines echten Admin-Accounts – das umgeht die Firestore-Regeln gezielt nur für diesen Bot, ist nicht
