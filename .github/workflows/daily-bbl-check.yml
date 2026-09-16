@@ -1,0 +1,34 @@
+name: Täglicher BBL-Abgleich
+
+# Läuft einmal täglich um ca. 9 Uhr deutscher Zeit. GitHub Actions kennt nur
+# UTC-Cron, deshalb 08:00 UTC gewählt (= 9 Uhr CET im Winterhalbjahr / 10 Uhr
+# CEST im Sommerhalbjahr). Die Abweichung von einer Stunde an ca. der Hälfte
+# der Tage im Jahr wurde bewusst in Kauf genommen, um die Konfiguration
+# einfach zu halten - für einen morgendlichen Ergebnis-Check ist eine Stunde
+# früher/später unkritisch. Über "workflow_dispatch" lässt sich der Job auch
+# jederzeit manuell auslösen (z. B. zum Testen), unter dem Reiter "Actions"
+# im GitHub-Repo.
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Abhängigkeiten installieren
+        working-directory: scripts/daily-bbl-check
+        run: npm install
+
+      - name: Abgleich ausführen
+        working-directory: scripts/daily-bbl-check
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: node check.mjs

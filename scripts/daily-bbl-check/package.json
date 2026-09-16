@@ -1,0 +1,9 @@
+{
+  "name": "daily-bbl-check",
+  "private": true,
+  "type": "module",
+  "description": "Taeglicher Abgleich mit der offiziellen BBL-Seite: Ergebnisse automatisch eintragen, Anstoss-Verschiebungen als Vorschlag ablegen.",
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}

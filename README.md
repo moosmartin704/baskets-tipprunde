@@ -161,23 +161,43 @@ erhalten und ist über das Dropdown in der Verwaltung weiterhin einsehbar.
 
 ---
 
-## 7. Automatischer Spielplan-/Ergebnis-Check (optional)
+## 7. Automatischer Spielplan-/Ergebnis-Check
 
-Im Tab **„Änderungen“** in der Verwaltung gibt es eine Warteschlange für automatisch erkannte
-Änderungen (z. B. verschobene Anstoßzeiten oder Endergebnisse). Ein separater, täglich laufender
-Hintergrund-Job kann dort Vorschläge ablegen (`pendingChanges`-Sammlung in Firestore) – er ändert
-**nie direkt** ein Spiel, sondern nur nach deiner Bestätigung per Klick auf „Übernehmen“. Ein
-Zähler am Profil-Symbol der unteren Leiste (und an „Verwaltung“ im Profil) zeigt an, wenn etwas wartet.
+Ein täglicher GitHub-Actions-Job (`.github/workflows/daily-bbl-check.yml`, Skript in
+`scripts/daily-bbl-check/`) gleicht die aktive Saison automatisch mit der offiziellen
+easyCredit-BBL-Website ab:
 
-Der Job braucht dafür keinen eigenen Bot-Account mehr – er läuft mit den Zugangsdaten eines echten
-Admin-Kontos (z. B. deinem eigenen), da `pendingChanges` laut den Sicherheitsregeln nur von Admins
-beschrieben werden darf. Einzige Voraussetzung ist eine tatsächlich eingerichtete Firebase-Instanz
-(siehe Schritt 1 oben) – ohne echte Datenbank kann der Job nichts eintragen. Beachte: Änderst du
-später dein Passwort, muss die im Job hinterlegte Zugangsdaten-Kopie mit aktualisiert werden.
+- **Ergebnisse** abgeschlossener Spiele werden **direkt eingetragen** – kein Admin-Klick nötig.
+  Falls doch mal etwas nicht stimmt, bleibt das Ergebnis wie gewohnt über „Ergebnis eintragen“ in
+  der Spieltag-Ansicht bzw. Verwaltung jederzeit korrigierbar.
+- **Anstoßzeit-Verschiebungen** landen weiterhin nur als Vorschlag im Tab **„Änderungen“** in der
+  Verwaltung und müssen von einem Admin per Klick auf „Übernehmen“ bestätigt werden – bewusst
+  nicht automatisch, weil Anstoßzeiten die Tipp-Sperrfrist beeinflussen und die BBL Termine
+  öfter kurzfristig verlegt.
+- Der Job prüft nur ein *nahes Zeitfenster* (die auf easycredit-bbl.de aktuell angezeigten
+  Spiele, grob die letzten/nächsten Tage). Das reicht zuverlässig für Ergebnisse (die erscheinen
+  ja unmittelbar nach Spielende), erkennt aber **keine langfristigen Verlegungen** (z. B. ein
+  Spiel, das Monate im Voraus auf einen ganz anderen Termin verschoben wird) proaktiv – dafür
+  bräuchte es einen aufwändigeren Voll-Saison-Abgleich, der von einer nicht offiziell
+  dokumentierten Paginierung der BBL-Seite abhängt und entsprechend fehleranfälliger wäre. Solche
+  Fälle fallen typischerweise beim Tippen selbst auf (wie schon einmal passiert) und lassen sich
+  jederzeit manuell über „Anstoß ändern“ korrigieren.
 
-Sobald Firebase eingerichtet ist, kann ein täglicher Cloud-Agent (Claude-Scheduled-Task) angelegt
-werden, der den offiziellen BBL-Spielplan/die Ergebnisse abruft, mit den gespeicherten Spielen
-vergleicht und Abweichungen als Vorschlag in `pendingChanges` ablegt.
+**Einrichtung (einmalig):**
+
+1. Firebase-Konsole → Projekteinstellungen → **Dienstkonten** → „Neuen privaten Schlüssel
+   generieren“ → JSON-Datei wird heruntergeladen (**niemals ins Repository committen!**).
+2. GitHub-Repo → **Settings → Secrets and variables → Actions → New repository secret** → Name
+   `FIREBASE_SERVICE_ACCOUNT_KEY` → kompletten Inhalt der JSON-Datei einfügen → Speichern.
+3. Fertig – der Job läuft ab sofort täglich automatisch (GitHub-Actions-Cron, ca. 8 Uhr UTC ≈
+   9 Uhr deutscher Zeit; die Abweichung von einer Stunde im Sommerhalbjahr durch die Zeitumstellung
+   wurde bewusst in Kauf genommen). Manuell testen: Tab **Actions** im Repo → „Täglicher
+   BBL-Abgleich“ → **Run workflow**. Die Logs zeigen genau, was übernommen bzw. vorgeschlagen wurde.
+
+Der Job nutzt bewusst ein **Firebase-Dienstkonto** (Firebase Admin SDK) statt der Zugangsdaten
+eines echten Admin-Accounts – das umgeht die Firestore-Regeln gezielt nur für diesen Bot, ist nicht
+an ein Passwort gebunden (bleibt also z. B. bei einer Passwort-Änderung weiter gültig) und lässt
+sich bei Bedarf unabhängig widerrufen (Firebase-Konsole → Dienstkonten → Schlüssel löschen).
 
 ---
 
