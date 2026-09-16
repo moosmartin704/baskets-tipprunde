@@ -147,9 +147,17 @@ Unter **Profil → Verwaltung** legst du Schritt für Schritt an:
      Playoffs?" → Typ Mehrfachauswahl, Anzahl auszuwählender Antworten = 8, alle Teams als
      Antwortmöglichkeiten eintragen (eine pro Zeile). Punkte pro richtiger Auswahl sind frei
      wählbar (z. B. 1 Punkt pro korrekt getipptem Team).
-   - Sobald das echte Ergebnis feststeht, bei der Frage auf **„Auflösen“** klicken und die
-     tatsächlich richtige(n) Antwort(en) auswählen – die Punkte werden danach automatisch für
-     alle berechnet.
+   - **Standardfrage einfügen**: Im Formular für eine neue Frage gibt es vorgefertigte Vorlagen
+     ("Playoff-Einzug", "Absteiger", "Meister", "Tabellenplatz-Frage" für ein einzelnes Team) –
+     füllt Frage, Antwortmöglichkeiten (alle Teams der Saison bzw. Plätze 1–18) und Punkte
+     automatisch aus. Drei der vier Vorlagen (alle außer "Meister") werden danach vom
+     **stündlichen BBL-Check automatisch ausgewertet**, sobald die Hauptrunde komplett beendet
+     ist – kein Admin-Klick nötig, siehe Abschnitt 7. Die Meister-Frage bleibt manuell, weil
+     Playoffs aktuell noch nicht als Spieltage abgebildet werden (dafür fehlt eine automatische
+     Datengrundlage).
+   - Für alle anderen Fragen: Sobald das echte Ergebnis feststeht, bei der Frage auf
+     **„Auflösen“** klicken und die tatsächlich richtige(n) Antwort(en) auswählen – die Punkte
+     werden danach automatisch für alle berechnet.
 
 ## 6. Jährliche Anpassung an die neue Saison
 
@@ -176,6 +184,10 @@ unbegrenzt und kostenlos, der Lauf dauert nur ca. 20 Sekunden, häufiger prüfen
   Verwaltung und müssen von einem Admin per Klick auf „Übernehmen“ bestätigt werden – bewusst
   nicht automatisch, weil Anstoßzeiten die Tipp-Sperrfrist beeinflussen und die BBL Termine
   öfter kurzfristig verlegt.
+- **Bonusfragen mit Tabellen-Bezug** (aus den Standardfrage-Vorlagen, siehe Abschnitt 5) werden
+  ebenfalls automatisch ausgewertet, sobald alle Hauptrunden-Spiele beendet sind – Grundlage ist
+  dieselbe Tabellenberechnung wie auf der BBL-Tabelle-Seite (`js/standings-core.js`, wird von App
+  und Bot gemeinsam genutzt).
 - Der Job prüft nur ein *nahes Zeitfenster* (die auf easycredit-bbl.de aktuell angezeigten
   Spiele, grob die letzten/nächsten Tage). Das reicht zuverlässig für Ergebnisse (die erscheinen
   ja unmittelbar nach Spielende), erkennt aber **keine langfristigen Verlegungen** (z. B. ein

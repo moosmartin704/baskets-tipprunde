@@ -495,7 +495,7 @@ async function renderBonusTab(body) {
 }
 
 async function renderBonusRoundAdminCard(br, onChange) {
-  const questions = await listBonusQuestions(br.id);
+  const [questions, teams] = await Promise.all([listBonusQuestions(br.id), listTeams(br.seasonId)]);
   const card = el("div", { class: "card" });
   card.appendChild(el("div", { class: "card-title-row" }, [
     el("h3", { class: "mt-0" }, br.label),
@@ -512,14 +512,14 @@ async function renderBonusRoundAdminCard(br, onChange) {
   card.appendChild(body);
   function toggle() { body.style.display = body.style.display === "none" ? "block" : "none"; }
 
-  body.appendChild(renderNewQuestionForm(br, questions.length, onChange));
+  body.appendChild(renderNewQuestionForm(br, questions.length, onChange, teams));
 
   if (!questions.length) body.appendChild(el("div", { class: "empty-state" }, "Noch keine Fragen."));
   for (const q of questions) {
     body.appendChild(el("div", { class: "list-row" }, [
       el("div", {}, [
         el("div", {}, q.text),
-        el("div", { class: "hint" }, `${q.type === "multi" ? `Mehrfachauswahl (${q.pickCount})` : "Einzelauswahl"} · ${q.pointsPerCorrect} Pkt./richtig · ${q.resolved ? "ausgewertet" : "offen"}`)
+        el("div", { class: "hint" }, `${q.type === "multi" ? `Mehrfachauswahl (${q.pickCount})` : "Einzelauswahl"} · ${q.pointsPerCorrect} Pkt./richtig · ${q.resolved ? "ausgewertet" : "offen"}${q.autoResolve ? " · wird automatisch geprüft" : ""}`)
       ]),
       el("button", { class: "btn btn-danger btn-sm", onclick: async () => {
         if (!confirm("Diese Frage löschen?")) return;
@@ -530,7 +530,7 @@ async function renderBonusRoundAdminCard(br, onChange) {
   return card;
 }
 
-function renderNewQuestionForm(br, order, onChange) {
+function renderNewQuestionForm(br, order, onChange, teams = []) {
   const textInput = el("textarea", { rows: "2", placeholder: "Frage, z.B. „Welche 8 Teams erreichen die Playoffs?“" });
   const typeSelect = el("select", {}, [
     el("option", { value: "single" }, "Einzelauswahl (1 richtige Antwort)"),
@@ -548,6 +548,72 @@ function renderNewQuestionForm(br, order, onChange) {
     pickCountWrap.style.display = typeSelect.value === "multi" ? "block" : "none";
   });
 
+  // Wird von den Standardfrage-Vorlagen unten gesetzt und beim Absenden mitgeschickt.
+  // Steuert, ob der stündliche BBL-Check (scripts/daily-bbl-check) diese Frage später
+  // selbst automatisch auflösen kann - siehe README Abschnitt 7.
+  let currentAutoResolve = null;
+
+  function applyTemplate({ text, type, pickCount, points, options, autoResolve, note }) {
+    textInput.value = text;
+    typeSelect.value = type;
+    typeSelect.dispatchEvent(new Event("change"));
+    pickCountInput.value = String(pickCount);
+    pointsInput.value = String(points);
+    optionsArea.value = options.join("\n");
+    currentAutoResolve = autoResolve;
+    toast(`Vorlage eingefügt${note ? ` (${note})` : ""} – unten prüfen und „Frage hinzufügen“ klicken.`, "success");
+  }
+
+  const teamNames = teams.map((t) => t.name);
+  let templatesBlock = null;
+
+  if (teamNames.length >= 2) {
+    const tplPlayoffBtn = el("button", { type: "button", class: "btn btn-secondary btn-sm" }, "Playoff-Einzug (Plätze 1–6)");
+    tplPlayoffBtn.addEventListener("click", () => applyTemplate({
+      text: "Welche 6 Mannschaften ziehen direkt in die Playoffs ein?",
+      type: "multi", pickCount: 6, points: 1, options: teamNames,
+      autoResolve: { kind: "regularSeasonRank", fromRank: 1, toRank: 6 }
+    }));
+
+    const tplRelegationBtn = el("button", { type: "button", class: "btn btn-secondary btn-sm" }, "Absteiger (Plätze 17–18)");
+    tplRelegationBtn.addEventListener("click", () => applyTemplate({
+      text: "Welche Mannschaften steigen ab?",
+      type: "multi", pickCount: 2, points: 1, options: teamNames,
+      autoResolve: { kind: "regularSeasonRank", fromRank: 17, toRank: 18 }
+    }));
+
+    const tplChampionBtn = el("button", { type: "button", class: "btn btn-secondary btn-sm" }, "Meister");
+    tplChampionBtn.addEventListener("click", () => applyTemplate({
+      text: "Wer wird Meister?",
+      type: "single", pickCount: 1, points: 1, options: teamNames,
+      autoResolve: null, // Playoffs sind (noch) nicht als Spieltage modelliert -> bleibt manuell über "Auflösen"
+      note: "muss nach den Playoffs manuell über \"Auflösen\" ausgewertet werden"
+    }));
+
+    const teamRankSelect = el("select", {}, teamNames.map((n) => el("option", { value: n }, n)));
+    const tplTeamRankBtn = el("button", { type: "button", class: "btn btn-secondary btn-sm" }, "Tabellenplatz-Frage einfügen");
+    tplTeamRankBtn.addEventListener("click", () => {
+      const team = teamRankSelect.value;
+      applyTemplate({
+        text: `Auf welchem Platz beendet ${team} die reguläre Saison?`,
+        type: "single", pickCount: 1, points: 1,
+        options: Array.from({ length: teamNames.length }, (_, i) => String(i + 1)),
+        autoResolve: { kind: "regularSeasonTeamRank", team }
+      });
+    });
+
+    templatesBlock = el("div", { class: "card is-sub" }, [
+      el("h4", { class: "mt-0" }, "Standardfrage einfügen (optional)"),
+      el("p", { class: "hint" },
+        "Füllt Frage, Antwortmöglichkeiten und Punkte unten aus. Die ersten drei Vorlagen richten " +
+        "sich nach der Tabelle der regulären Saison und werden vom stündlichen BBL-Check automatisch " +
+        "ausgewertet, sobald alle Hauptrunden-Spiele beendet sind – kein Admin-Klick nötig."
+      ),
+      el("div", { class: "inline-actions", style: "flex-wrap:wrap" }, [tplPlayoffBtn, tplRelegationBtn, tplChampionBtn]),
+      el("div", { style: "display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap" }, [teamRankSelect, tplTeamRankBtn])
+    ]);
+  }
+
   const addBtn = el("button", { class: "btn btn-primary btn-sm" }, "Frage hinzufügen");
   addBtn.addEventListener("click", async () => {
     const text = textInput.value.trim();
@@ -557,13 +623,15 @@ function renderNewQuestionForm(br, order, onChange) {
       text, type: typeSelect.value, options,
       pickCount: Number(pickCountInput.value) || 1,
       pointsPerCorrect: Number(pointsInput.value) || 1,
-      order
+      order,
+      autoResolve: currentAutoResolve
     });
     toast("Frage hinzugefügt", "success");
     onChange();
   });
 
   return el("div", { class: "card is-sub" }, [
+    templatesBlock,
     el("label", {}, "Frage"),
     textInput,
     el("div", { class: "grid-2" }, [

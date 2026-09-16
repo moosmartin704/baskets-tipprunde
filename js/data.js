@@ -278,7 +278,7 @@ export async function listBonusQuestionsForSeason(seasonId) {
 }
 
 export async function createBonusQuestion(seasonId, bonusRoundId, {
-  text, type, options, pickCount, pointsPerCorrect, order
+  text, type, options, pickCount, pointsPerCorrect, order, autoResolve
 }) {
   const ref = await addDoc(col("bonusQuestions"), {
     seasonId, bonusRoundId, text, type,
@@ -287,7 +287,12 @@ export async function createBonusQuestion(seasonId, bonusRoundId, {
     pointsPerCorrect: pointsPerCorrect || 1,
     correctOptions: null,
     resolved: false,
-    order: order || 0
+    order: order || 0,
+    // Optional: Regel, nach der der stündliche BBL-Check (siehe scripts/daily-bbl-check)
+    // diese Frage automatisch selbst auflösen kann, sobald die Datenlage es zulässt
+    // (z.B. { kind: "regularSeasonRank", fromRank: 1, toRank: 6 }). Ohne dieses Feld
+    // bleibt die Frage wie bisher nur manuell über "Auflösen" auswertbar.
+    autoResolve: autoResolve || null
   });
   return ref.id;
 }

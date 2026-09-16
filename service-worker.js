@@ -1,4 +1,4 @@
-const CACHE_NAME = "baskets-tipprunde-v8";
+const CACHE_NAME = "baskets-tipprunde-v9";
 const FONT_CACHE = "baskets-tipprunde-fonts-v1";
 const APP_SHELL = [
   "./",
@@ -10,6 +10,7 @@ const APP_SHELL = [
   "./js/firebase-config.js",
   "./js/data.js",
   "./js/scoring.js",
+  "./js/standings-core.js",
   "./js/state.js",
   "./js/router.js",
   "./js/auth.js",

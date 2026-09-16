@@ -13,6 +13,11 @@
 //    einem Admin bestaetigt werden). Grund: Anstoss-Verschiebungen sind zum
 //    Teil vorlaeufig/kurzfristig und beeinflussen die Tipp-Sperrfrist, deshalb
 //    bewusst NICHT automatisch.
+// 5. Bonusfragen mit einer "autoResolve"-Regel (siehe js/views/admin.js,
+//    Standardfrage-Vorlagen) werden automatisch ausgewertet, sobald die
+//    Hauptrunde komplett beendet ist - z. B. "Playoff-Einzug (Plaetze 1-6)"
+//    oder "Auf welchem Platz landet Team X". Fragen ohne diese Regel (z. B.
+//    "Wer wird Meister?") bleiben weiterhin manuell ueber "Aufloesen".
 //
 // Laeuft per GitHub Actions Cron (siehe .github/workflows/daily-bbl-check.yml)
 // mit einem Firebase-Dienstkonto (Admin SDK, umgeht die Firestore-Regeln
@@ -31,6 +36,7 @@
 
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { computeLeagueTable, allFinished, regularSeasonGames } from "../../js/standings-core.js";
 
 const KICKOFF_DRIFT_MINUTES = 15; // ab wann eine Zeitabweichung als "echt" gilt (Rundungstoleranz)
 const BBL_URL = "https://www.easycredit-bbl.de/saison/aktuelle-spiele";
@@ -183,10 +189,10 @@ async function runOnce(db) {
   console.log(`Aktive Saison: ${seasonId}`);
 
   const gamesSnap = await db.collection("games").where("seasonId", "==", seasonId).get();
+  const allGames = gamesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const gamesByTeams = new Map();
-  for (const doc of gamesSnap.docs) {
-    const g = doc.data();
-    gamesByTeams.set(`${g.homeTeamName}|||${g.awayTeamName}`, { id: doc.id, ...g });
+  for (const g of allGames) {
+    gamesByTeams.set(`${g.homeTeamName}|||${g.awayTeamName}`, g);
   }
   console.log(`${gamesSnap.size} Spiele der aktiven Saison aus Firestore geladen.`);
 
@@ -255,12 +261,73 @@ async function runOnce(db) {
     }
   }
 
+  const bonusResolved = await resolveBonusQuestions(db, seasonId, allGames);
+
   console.log(
     `Fertig. ${resultsApplied} Ergebnis(se) automatisch uebernommen, ` +
     `${resultMismatches} Abweichung(en) bei bestehenden Ergebnissen (nicht ueberschrieben), ` +
     `${kickoffFlags} Anstoss-Aenderung(en) vorgeschlagen, ` +
-    `${unmatched} BBL-Spiel(e) ohne Zuordnung zu unseren Daten.`
+    `${unmatched} BBL-Spiel(e) ohne Zuordnung zu unseren Daten, ` +
+    `${bonusResolved} Bonusfrage(n) automatisch ausgewertet.`
   );
+}
+
+/**
+ * Loest Bonusfragen mit einer "autoResolve"-Regel automatisch auf, sobald die
+ * dafuer noetigen Spiele beendet sind (siehe js/views/admin.js fuer die
+ * Vorlagen, die dieses Feld setzen). Fragen ohne autoResolve (z. B. "Wer wird
+ * Meister?", da Playoffs noch nicht als Spieltage modelliert sind) bleiben
+ * unberuehrt und muessen weiterhin manuell ueber "Aufloesen" bearbeitet werden.
+ */
+async function resolveBonusQuestions(db, seasonId, allGames) {
+  const questionsSnap = await db.collection("bonusQuestions").where("seasonId", "==", seasonId).get();
+  const openAutoQuestions = questionsSnap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((q) => !q.resolved && q.autoResolve);
+
+  if (!openAutoQuestions.length) return 0;
+
+  const matchdaysSnap = await db.collection("matchdays").where("seasonId", "==", seasonId).get();
+  const matchdays = matchdaysSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const regGames = regularSeasonGames(allGames, matchdays);
+
+  if (!allFinished(regGames)) {
+    console.log(
+      `${openAutoQuestions.length} automatisch aufloesbare Bonusfrage(n) offen, ` +
+      `aber die Hauptrunde ist noch nicht komplett beendet - noch nichts zu tun.`
+    );
+    return 0;
+  }
+
+  const teamsSnap = await db.collection("teams").where("seasonId", "==", seasonId).get();
+  const teams = teamsSnap.docs.map((d) => d.data());
+  const table = computeLeagueTable(regGames, teams);
+
+  let resolvedCount = 0;
+  for (const q of openAutoQuestions) {
+    const correctOptions = resolveAutoQuestion(q.autoResolve, table);
+    if (!correctOptions) {
+      console.warn(`Konnte Bonusfrage "${q.text}" nicht automatisch aufloesen (unbekannte autoResolve-Regel).`);
+      continue;
+    }
+    await db.collection("bonusQuestions").doc(q.id).update({ correctOptions, resolved: true });
+    console.log(`Bonusfrage automatisch aufgeloest: "${q.text}" -> ${correctOptions.join(", ")}`);
+    resolvedCount++;
+  }
+  return resolvedCount;
+}
+
+function resolveAutoQuestion(rule, table) {
+  if (rule.kind === "regularSeasonRank") {
+    // fromRank/toRank sind 1-basiert und inklusive.
+    return table.slice(rule.fromRank - 1, rule.toRank).map((r) => r.team);
+  }
+  if (rule.kind === "regularSeasonTeamRank") {
+    const idx = table.findIndex((r) => r.team === rule.team);
+    if (idx === -1) return null;
+    return [String(idx + 1)];
+  }
+  return null;
 }
 
 main()

@@ -2,13 +2,9 @@
 // Bonusfragen: pro richtig ausgewählter Option gibt es `pointsPerCorrect` Punkte
 // (bei Einzelauswahl-Fragen ist das einfach richtig/falsch).
 import { tsMillis } from "./data.js";
+import { gameWinner, computeLeagueTable } from "./standings-core.js";
 
-export function gameWinner(game) {
-  if (game.status !== "finished" || game.homeScore == null || game.awayScore == null) return null;
-  if (game.homeScore > game.awayScore) return "home";
-  if (game.awayScore > game.homeScore) return "away";
-  return "draw"; // im Basketball praktisch nie, aber sicherheitshalber abgedeckt
-}
+export { gameWinner, computeLeagueTable };
 
 /** Punkte eines einzelnen Tipps für ein beendetes Spiel (0 oder 1). */
 export function pointsForTip(game, tip) {
@@ -126,34 +122,4 @@ export function teamForm(games, teamName, limit = 5) {
     results.push(won ? "S" : "N");
   }
   return results.slice(-limit);
-}
-
-/**
- * Tabelle der Hauptrunde aus allen beendeten Spielen. `teams` (Liste mit .name) sorgt dafür,
- * dass auch Teams ohne bisherige Spiele mit 0:0 auftauchen.
- */
-export function computeLeagueTable(games, teams = []) {
-  const table = {};
-  function ensure(name) {
-    if (!table[name]) table[name] = { team: name, played: 0, wins: 0, losses: 0, scored: 0, conceded: 0 };
-    return table[name];
-  }
-  for (const t of teams) ensure(t.name);
-
-  for (const g of games) {
-    if (g.status !== "finished") continue;
-    const winner = gameWinner(g);
-    if (!winner || winner === "draw") continue;
-    const home = ensure(g.homeTeamName);
-    const away = ensure(g.awayTeamName);
-    home.played++; away.played++;
-    home.scored += g.homeScore; home.conceded += g.awayScore;
-    away.scored += g.awayScore; away.conceded += g.homeScore;
-    if (winner === "home") { home.wins++; away.losses++; }
-    else { away.wins++; home.losses++; }
-  }
-
-  return Object.values(table)
-    .map((r) => ({ ...r, diff: r.scored - r.conceded, points: r.wins * 2 }))
-    .sort((a, b) => b.points - a.points || b.diff - a.diff || b.scored - a.scored || a.team.localeCompare(b.team, "de"));
 }
