@@ -8,6 +8,8 @@ import {
   listBonusQuestions, createBonusQuestion, updateBonusQuestion, deleteBonusQuestion,
   listPendingChanges, applyPendingChange, dismissPendingChange, listGamesForSeason,
   getAppConfig, updateAppConfig,
+  listBonnExtraGames, createBonnExtraGame, updateBonnExtraGame, deleteBonnExtraGame,
+  setBonnExtraGameResult, clearBonnExtraGameResult,
   tsToDate
 } from "../data.js";
 import { el, toast, fmtDateInputValue, suggestTeamCode } from "../util.js";
@@ -43,6 +45,7 @@ export async function renderAdmin(container) {
     tabBtn("teams", "Teams"),
     tabBtn("matchdays", "Spieltage"),
     tabBtn("bonus", "Bonusfragen"),
+    tabBtn("bonn", "Bonn"),
     tabBtn("changes", pendingCount ? `Änderungen (${pendingCount})` : "Änderungen")
   ]);
   const body = el("div", { class: "admin-body" });
@@ -64,6 +67,7 @@ export async function renderAdmin(container) {
   else if (activeTab === "teams") await renderTeamsTab(body, seasons);
   else if (activeTab === "matchdays") await renderMatchdaysTab(body);
   else if (activeTab === "bonus") await renderBonusTab(body);
+  else if (activeTab === "bonn") await renderBonnAdminTab(body);
   else if (activeTab === "changes") await renderChangesTab(body);
 
   function tabBtn(id, label) {
@@ -643,6 +647,126 @@ function renderNewQuestionForm(br, order, onChange, teams = []) {
     optionsArea,
     addBtn
   ]);
+}
+
+/* ----------------------- Bonn-Zusatzspiele-Tab ----------------------- */
+
+const COMPETITION_LABELS = { cl: "Champions League", pokal: "Netto BBL Pokal" };
+
+async function renderBonnAdminTab(body) {
+  const games = await listBonnExtraGames(adminSeasonId);
+
+  body.appendChild(el("div", { class: "card" }, [
+    el("h2", { class: "mt-0" }, "Zusatzspiel der Telekom Baskets Bonn"),
+    el("p", { class: "hint" },
+      "Champions-League- und Pokal-Spiele gibt es (anders als die BBL-Hauptrunde) nicht automatisch " +
+      "– hier von Hand eintragen, sobald ein Termin feststeht. Erscheinen auf der Bonn-Seite, sind " +
+      "aber nicht tippbar."
+    ),
+    renderNewBonnGameForm(refresh)
+  ]));
+
+  const listCard = el("div", { class: "card" }, [el("h2", { class: "mt-0" }, `Zusatzspiele (${games.length})`)]);
+  if (!games.length) listCard.appendChild(el("div", { class: "empty-state" }, "Noch keine Zusatzspiele eingetragen."));
+  for (const g of games) {
+    listCard.appendChild(renderBonnGameAdminRow(g, refresh));
+  }
+  body.appendChild(listCard);
+
+  function refresh() {
+    const root = document.getElementById("view");
+    root.innerHTML = "";
+    renderAdmin(root);
+  }
+}
+
+function renderNewBonnGameForm(onChange) {
+  const competitionSelect = el("select", {}, [
+    el("option", { value: "cl" }, "Champions League"),
+    el("option", { value: "pokal" }, "Netto BBL Pokal")
+  ]);
+  const opponentInput = el("input", { type: "text", placeholder: "Gegner, z.B. Hapoel Tel Aviv" });
+  const homeSelect = el("select", {}, [
+    el("option", { value: "1" }, "Heimspiel (Bonn)"),
+    el("option", { value: "0" }, "Auswärtsspiel")
+  ]);
+  const kickoffInput = el("input", { type: "datetime-local" });
+  const noteInput = el("input", { type: "text", placeholder: "z.B. Achtelfinale, Hinspiel (optional)" });
+
+  const addBtn = el("button", { class: "btn btn-primary" }, "Zusatzspiel hinzufügen");
+  addBtn.addEventListener("click", async () => {
+    const opponent = opponentInput.value.trim();
+    if (!opponent || !kickoffInput.value) { toast("Bitte mindestens Gegner und Termin angeben.", "error"); return; }
+    await createBonnExtraGame(adminSeasonId, {
+      competition: competitionSelect.value,
+      opponent,
+      isHome: homeSelect.value === "1",
+      kickoff: kickoffInput.value,
+      note: noteInput.value.trim()
+    });
+    toast("Zusatzspiel hinzugefügt", "success");
+    onChange();
+  });
+
+  return el("div", { class: "card is-sub" }, [
+    el("div", { class: "grid-2" }, [
+      el("div", {}, [el("label", {}, "Wettbewerb"), competitionSelect]),
+      el("div", {}, [el("label", {}, "Heim/Auswärts"), homeSelect])
+    ]),
+    el("label", {}, "Gegner"),
+    opponentInput,
+    el("label", {}, "Anstoß"),
+    kickoffInput,
+    el("label", {}, "Notiz (optional)"),
+    noteInput,
+    addBtn
+  ]);
+}
+
+function renderBonnGameAdminRow(g, onChange) {
+  const finished = g.status === "finished";
+  const matchup = g.isHome ? `Bonn – ${g.opponent}` : `${g.opponent} – Bonn`;
+  const row = el("div", { class: "list-row" }, [
+    el("div", {}, [
+      el("div", {}, [
+        matchup,
+        el("span", { class: "pill pill-ink", style: "margin-left:8px" }, COMPETITION_LABELS[g.competition] || g.competition)
+      ]),
+      el("div", { class: "hint" },
+        `${tsToDate(g.kickoff).toLocaleString("de-DE")}${finished ? ` · ${g.homeScore}:${g.awayScore}` : ""}${g.note ? ` · ${g.note}` : ""}`
+      )
+    ]),
+    el("div", { class: "inline-actions" }, [
+      el("button", { class: "btn btn-secondary btn-sm", onclick: () => toggleEdit() }, finished ? "Ergebnis ändern" : "Ergebnis eintragen"),
+      el("button", { class: "btn btn-danger btn-sm", onclick: async () => {
+        if (!confirm(`Zusatzspiel gegen „${g.opponent}“ löschen?`)) return;
+        await deleteBonnExtraGame(g.id); toast("Zusatzspiel gelöscht", "success"); onChange();
+      } }, "Löschen")
+    ])
+  ]);
+
+  const editForm = el("div", { style: "display:none;width:100%;padding:8px 0" });
+  const homeInput = el("input", { type: "number", min: "0", inputmode: "numeric", value: g.homeScore ?? "", placeholder: g.isHome ? "Bonn" : g.opponent });
+  const awayInput = el("input", { type: "number", min: "0", inputmode: "numeric", value: g.awayScore ?? "", placeholder: g.isHome ? g.opponent : "Bonn" });
+  const saveBtn = el("button", { class: "btn btn-primary btn-sm" }, "Speichern");
+  saveBtn.addEventListener("click", async () => {
+    if (homeInput.value === "" || awayInput.value === "") { toast("Bitte beide Ergebnisse eingeben.", "error"); return; }
+    await setBonnExtraGameResult(g.id, homeInput.value, awayInput.value);
+    toast("Ergebnis gespeichert", "success");
+    onChange();
+  });
+  const clearBtn = finished ? el("button", { class: "btn btn-secondary btn-sm" }, "Zurücksetzen") : null;
+  clearBtn?.addEventListener("click", async () => {
+    await clearBonnExtraGameResult(g.id);
+    toast("Ergebnis zurückgesetzt", "success");
+    onChange();
+  });
+  editForm.append(el("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap" }, [
+    homeInput, el("span", {}, ":"), awayInput, saveBtn, clearBtn
+  ]));
+  function toggleEdit() { editForm.style.display = editForm.style.display === "none" ? "block" : "none"; }
+
+  return el("div", {}, [row, editForm]);
 }
 
 /* --------------------------- Änderungen-Tab --------------------------- */

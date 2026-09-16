@@ -11,6 +11,7 @@ import { renderBonusDetail } from "./views/bonusDetail.js";
 import { renderStandings } from "./views/standings.js";
 import { renderAdmin } from "./views/admin.js";
 import { renderProfile } from "./views/profile.js";
+import { renderBonnPage } from "./views/bonn.js";
 import { clear, el } from "./util.js";
 import {
   icon, setTheme, refreshTeamCodes, updatePendingDot, poster, posterBar, backLink,
@@ -29,7 +30,8 @@ const TAB_FOR_ROUTE = {
   table: "table",
   standings: "standings",
   profile: "profile",
-  admin: "profile"
+  admin: "profile",
+  bonn: "profile"
 };
 
 tabBar.querySelectorAll("a[data-tab]").forEach((a) => a.prepend(icon(a.dataset.icon, 22, 2)));
@@ -59,6 +61,7 @@ route("matchday/:id", renderMatchdayDetail);
 route("bonus/:id", renderBonusDetail);
 route("standings", renderStandings);
 route("profile", renderProfile);
+route("bonn", renderBonnPage);
 route("admin", async (container) => {
   if (!state.isAdmin) {
     container.append(...renderNoAccess());

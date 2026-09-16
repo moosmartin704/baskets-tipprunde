@@ -935,6 +935,24 @@ body[data-theme="ink"] .spinner { border-top-color: var(--mg); }
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .badge-active { display: inline-flex; padding: 3px 10px; border-radius: 999px; background: var(--ok-soft); color: var(--ok-ink); font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
 .card .empty-state { padding: 16px 0; }
+
+.bonn-row {
+  border-left: 3px solid transparent;
+  padding-left: 10px;
+  margin-left: -10px;
+  border-radius: 0 8px 8px 0;
+}
+.bonn-row.is-home { border-left-color: var(--mg); background: var(--mg-soft); }
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.check-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--mg); flex-shrink: 0; }
 @media (max-width: 480px) {
   .grid-2 { grid-template-columns: minmax(0, 1fr); }
 }

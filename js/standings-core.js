@@ -53,6 +53,46 @@ export function allFinished(games) {
   return games.length > 0 && games.every((g) => g.status === "finished");
 }
 
+/** Punkte eines einzelnen Tipps für ein beendetes Spiel (0 oder 1). */
+export function pointsForTip(game, tip) {
+  const winner = gameWinner(game);
+  if (!winner || winner === "draw" || !tip) return 0;
+  return tip.picked === winner ? 1 : 0;
+}
+
+/**
+ * Für einen Spieltag: Punkte pro Nutzer.
+ * games: Spiele dieses Spieltags, tips: alle Tipps der Saison (werden gefiltert).
+ * Gibt { [userId]: points } zurück, nur für Nutzer mit mind. einem Tipp an diesem Spieltag.
+ */
+export function computeMatchdayScores(games, allTips) {
+  const finished = games.filter((g) => g.status === "finished");
+  const gameIds = new Set(games.map((g) => g.id));
+  const relevantTips = allTips.filter((t) => gameIds.has(t.gameId));
+  const scores = {};
+  for (const t of relevantTips) {
+    scores[t.userId] = scores[t.userId] ?? 0;
+  }
+  for (const g of finished) {
+    const winner = gameWinner(g);
+    if (!winner || winner === "draw") continue;
+    for (const t of relevantTips) {
+      if (t.gameId !== g.id) continue;
+      if (t.picked === winner) scores[t.userId] = (scores[t.userId] ?? 0) + 1;
+    }
+  }
+  return scores;
+}
+
+/** Aus { [userId]: points } die Spieltagssieger (bei Gleichstand mehrere) + deren Punktzahl. */
+export function matchdayWinners(scores) {
+  const entries = Object.entries(scores);
+  if (!entries.length) return { winners: [], max: 0 };
+  const max = Math.max(...entries.map(([, p]) => p));
+  if (max <= 0) return { winners: [], max };
+  return { winners: entries.filter(([, p]) => p === max).map(([uid]) => uid), max };
+}
+
 /**
  * Filtert Spiele auf die Hauptrunde (alles außer matchday.type === "playoff").
  * matchdays: Liste aller Spieltage der Saison, games: alle Spiele der Saison.

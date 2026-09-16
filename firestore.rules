@@ -57,6 +57,12 @@ service cloud.firestore {
       allow read: if signedIn();
       allow write: if isAdmin();
     }
+    // Zusatzspiele der Telekom Baskets Bonn (Champions League, Pokal) - reine Anzeige,
+    // nicht tippbar, deshalb dieselben Regeln wie bei "games".
+    match /bonnExtraGames/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
     match /pendingChanges/{id} {
       allow read, write: if isAdmin();
     }

@@ -199,6 +199,50 @@ export async function bulkImportSchedule(seasonId, rows, onProgress) {
   return created;
 }
 
+/* ------------------- Zusatzspiele Telekom Baskets Bonn (CL/Pokal) ------------------- */
+// Eigene, nicht tippbare Spiele außerhalb der BBL-Hauptrunde/Playoffs (Champions League,
+// Netto BBL Pokal). Werden von Admins manuell gepflegt, da es dafür keine automatisch
+// auslesbare Quelle gibt (anders als beim BBL-Spielplan, siehe scripts/daily-bbl-check).
+
+export const BONN_TEAM_NAME = "Telekom Baskets Bonn";
+
+export async function listBonnExtraGames(seasonId) {
+  const snap = await getDocs(query(col("bonnExtraGames"), where("seasonId", "==", seasonId)));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => tsMillis(a.kickoff) - tsMillis(b.kickoff));
+}
+
+export async function createBonnExtraGame(seasonId, { competition, opponent, isHome, kickoff, note }) {
+  const ref = await addDoc(col("bonnExtraGames"), {
+    seasonId, competition, opponent, isHome: Boolean(isHome),
+    kickoff: Timestamp.fromDate(new Date(kickoff)),
+    note: note || "",
+    homeScore: null, awayScore: null, status: "scheduled"
+  });
+  return ref.id;
+}
+
+export async function updateBonnExtraGame(id, patch) {
+  const clean = { ...patch };
+  if (clean.kickoff) clean.kickoff = Timestamp.fromDate(new Date(clean.kickoff));
+  await updateDoc(doc(db, "bonnExtraGames", id), clean);
+}
+
+export async function setBonnExtraGameResult(id, homeScore, awayScore) {
+  await updateDoc(doc(db, "bonnExtraGames", id), {
+    homeScore: Number(homeScore), awayScore: Number(awayScore), status: "finished"
+  });
+}
+
+export async function clearBonnExtraGameResult(id) {
+  await updateDoc(doc(db, "bonnExtraGames", id), { homeScore: null, awayScore: null, status: "scheduled" });
+}
+
+export async function deleteBonnExtraGame(id) {
+  await deleteDoc(doc(db, "bonnExtraGames", id));
+}
+
 /* ------------------------- Automatisch erkannte Änderungen ------------------------- */
 // Ein täglicher Hintergrund-Job (z. B. ein geplanter Cloud-Agent) kann hier Vorschläge ablegen,
 // statt Spiele/Ergebnisse direkt zu ändern. Erst wenn jemand den Vorschlag in der Verwaltung
@@ -369,6 +413,19 @@ export async function ensureUserDoc(uid, displayName, email) {
 export async function listUsers() {
   const snap = await getDocs(col("users"));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function getMyUserDoc(uid) {
+  const s = await getDoc(doc(db, "users", uid));
+  return s.exists() ? s.data() : null;
+}
+
+/**
+ * Beliebige Profil-Einstellungen speichern (z.B. bonnReminder, notifyMatchdayWinner).
+ * Wird per merge geschrieben, überschreibt also nur die übergebenen Felder.
+ */
+export async function updateUserPrefs(uid, patch) {
+  await setDoc(doc(db, "users", uid), patch, { merge: true });
 }
 
 /* --------------------------------- Admin-Konfiguration ---------------------------------- */

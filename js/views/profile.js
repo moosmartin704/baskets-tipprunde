@@ -1,7 +1,7 @@
 import { state } from "../state.js";
 import { auth, updateProfile, signOut, sendPasswordResetEmail, getMessagingSafe, getFcmToken } from "../firebase.js";
 import { vapidKey } from "../firebase-config.js";
-import { ensureUserDoc, saveFcmToken } from "../data.js";
+import { ensureUserDoc, saveFcmToken, getMyUserDoc, updateUserPrefs } from "../data.js";
 import { el, toast } from "../util.js";
 import {
   setTheme, poster, posterBar, brand, spacer, seasonChip, sheet, sectionHead, icon, initial
@@ -26,7 +26,17 @@ export async function renderProfile(container) {
     ])
   ]));
 
+  const myDoc = await getMyUserDoc(state.user.uid);
   const items = [];
+
+  items.push(el("a", { class: "list-link is-feature", href: "#/bonn" }, [
+    el("div", { class: "icon-badge" }, icon("home", 22)),
+    el("div", { class: "list-body" }, [
+      el("div", { class: "list-title" }, "Telekom Baskets Bonn"),
+      el("div", { class: "list-sub" }, "Spielplan · Liga, Champions League & Pokal")
+    ]),
+    el("div", { class: "list-end" }, icon("chevR", 20, 2))
+  ]));
 
   if (state.isAdmin) {
     items.push(el("a", { class: "list-link is-feature", href: "#/admin" }, [
@@ -73,11 +83,24 @@ export async function renderProfile(container) {
   // Erinnerungen
   const notifyBtn = el("button", { type: "button", class: "btn btn-ink" }, [icon("bell", 18, 2), "Benachrichtigungen aktivieren"]);
   notifyBtn.addEventListener("click", () => enableNotifications(notifyBtn));
+
+  const winnerInput = el("input", { type: "checkbox", checked: myDoc?.notifyMatchdayWinner !== false });
+  winnerInput.addEventListener("change", async () => {
+    await updateUserPrefs(state.user.uid, { notifyMatchdayWinner: winnerInput.checked });
+    toast("Gespeichert", "success");
+  });
+
   items.push(
     sectionHead("Erinnerungen"),
     el("div", { class: "panel" }, [
       el("p", { class: "hint" }, "Erinnert dich, wenn du kurz vor Anpfiff noch nicht getippt hast. Auf dem iPhone klappt das nur, wenn du die App über „Zum Home-Bildschirm“ installiert hast und von dort öffnest."),
-      el("div", { class: "btn-row" }, [notifyBtn])
+      el("div", { class: "btn-row" }, [notifyBtn]),
+      el("label", { class: "check-row", style: "margin-top:10px" }, [winnerInput, "Benachrichtigen, wenn ein Spieltag komplett ausgewertet ist"]),
+      el("p", { class: "hint" }, [
+        "Heimspiel-Erinnerungen für die Telekom Baskets Bonn stellst du auf der ",
+        el("a", { href: "#/bonn" }, "Bonn-Seite"),
+        " ein."
+      ])
     ])
   );
 

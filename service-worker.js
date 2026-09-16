@@ -1,4 +1,4 @@
-const CACHE_NAME = "baskets-tipprunde-v10";
+const CACHE_NAME = "baskets-tipprunde-v11";
 const FONT_CACHE = "baskets-tipprunde-fonts-v1";
 const APP_SHELL = [
   "./",
@@ -25,6 +25,7 @@ const APP_SHELL = [
   "./js/views/table.js",
   "./js/views/admin.js",
   "./js/views/profile.js",
+  "./js/views/bonn.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/apple-touch-icon.png"
