@@ -17,4 +17,4 @@ export const firebaseConfig = {
 // Für Push-Benachrichtigungen: Firebase-Konsole -> Projekteinstellungen -> Cloud Messaging ->
 // "Web-Push-Zertifikate" -> Schlüsselpaar generieren. Ohne diesen Wert funktionieren
 // Benachrichtigungen nicht, der Rest der App läuft aber ganz normal weiter.
-export const vapidKey = "DEIN_VAPID_KEY";
+export const vapidKey = "BBQxg-vqGZcyU5Hk5f7LNIWjCm6GntfIpGWbJ7N4DHLEK3Wb-7UyxGYJeajRX8NCutBpo1r-342Y74dX6KPEuI0";
