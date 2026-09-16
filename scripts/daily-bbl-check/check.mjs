@@ -147,10 +147,15 @@ function sleep(ms) {
  * deshalb sicher.
  */
 async function main() {
+  // initializeApp() darf pro Prozess nur einmal aufgerufen werden - deshalb
+  // hier vor der Retry-Schleife und nicht in runOnce() (sonst "duplicate-app"
+  // Fehler beim zweiten Versuch).
+  const db = initFirestore();
+
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      await runOnce();
+      await runOnce(db);
       return;
     } catch (err) {
       const isQuotaError = err?.code === 8 || /RESOURCE_EXHAUSTED|Quota exceeded/i.test(String(err?.message));
@@ -168,9 +173,7 @@ async function main() {
   }
 }
 
-async function runOnce() {
-  const db = initFirestore();
-
+async function runOnce(db) {
   const seasonsSnap = await db.collection("seasons").where("isActive", "==", true).limit(1).get();
   if (seasonsSnap.empty) {
     console.log("Keine aktive Saison in Firestore - nichts zu tun.");
