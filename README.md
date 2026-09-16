@@ -12,6 +12,11 @@ auf dem Handy (iOS & Android) wie eine App auf den Homescreen legen (PWA).
 - Playoffs werden wie normale Spieltage abgebildet, jedes Spiel einzeln tippbar.
 - Jedes Jahr kannst du in der Verwaltung eine neue Saison anlegen (optional inkl. Übernahme der
   Teams aus der Vorsaison), ohne die Historie der alten Saison zu verlieren.
+- Eigene Seite „Telekom Baskets Bonn" (verlinkt im Profil): alle Spiele – Liga, Champions League
+  und Netto BBL Pokal – auf einen Blick, nicht tippbar, Heimspiele farblich hervorgehoben, mit
+  Filter „Nur Heimspiele" und einer persönlich einstellbaren Heimspiel-Push-Erinnerung.
+- Push-Nachricht, sobald ein Spieltag komplett ausgewertet ist und ein Sieger feststeht
+  (im Profil abwählbar).
 
 ## Wie die App technisch funktioniert
 
@@ -158,6 +163,9 @@ Unter **Profil → Verwaltung** legst du Schritt für Schritt an:
    - Für alle anderen Fragen: Sobald das echte Ergebnis feststeht, bei der Frage auf
      **„Auflösen“** klicken und die tatsächlich richtige(n) Antwort(en) auswählen – die Punkte
      werden danach automatisch für alle berechnet.
+5. **Tab „Bonn“**: Champions-League- und Pokal-Spiele der Telekom Baskets Bonn eintragen (Gegner,
+   Heim/Auswärts, Termin) – erscheinen auf der Bonn-Seite (verlinkt im Profil), sind aber nicht
+   tippbar. Liga-Spiele von Bonn kommen automatisch aus dem normalen Spielplan dazu.
 
 ## 6. Jährliche Anpassung an die neue Saison
 
@@ -196,6 +204,12 @@ unbegrenzt und kostenlos, der Lauf dauert nur ca. 20 Sekunden, häufiger prüfen
   dokumentierten Paginierung der BBL-Seite abhängt und entsprechend fehleranfälliger wäre. Solche
   Fälle fallen typischerweise beim Tippen selbst auf (wie schon einmal passiert) und lassen sich
   jederzeit manuell über „Anstoß ändern“ korrigieren.
+- **Spieltags-Sieger-Push**: Sobald alle Spiele eines Spieltags beendet sind, verschickt der Job
+  einmalig eine Push-Nachricht mit dem/den Sieger(n) an alle Nutzer:innen, die das nicht im Profil
+  abgewählt haben.
+- **Bonn-Heimspiel-Erinnerung**: Für Nutzer:innen mit aktivierter Erinnerung (Bonn-Seite, siehe
+  oben) verschickt der Job eine Push-Nachricht, sobald ein Heimspiel ins jeweils individuell
+  eingestellte Zeitfenster fällt.
 
 **Einrichtung (einmalig):**
 

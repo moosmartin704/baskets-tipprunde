@@ -18,6 +18,15 @@
 //    Hauptrunde komplett beendet ist - z. B. "Playoff-Einzug (Plaetze 1-6)"
 //    oder "Auf welchem Platz landet Team X". Fragen ohne diese Regel (z. B.
 //    "Wer wird Meister?") bleiben weiterhin manuell ueber "Aufloesen".
+// 6. Sobald alle Spiele eines Spieltags beendet sind, geht einmalig eine Push-
+//    Nachricht mit dem/den Spieltagssieger(n) an alle Nutzer:innen raus, die
+//    das nicht abgewaehlt haben (users/{uid}.notifyMatchdayWinner, Default an).
+// 7. Heimspiel-Erinnerungen fuer die Telekom Baskets Bonn (Liga + manuell
+//    gepflegte Champions-League-/Pokal-Zusatzspiele, siehe Verwaltung Tab
+//    "Bonn"): jede Person kann in ihrem Profil individuell Vorlaufzeit und
+//    Wettbewerbe einstellen (users/{uid}.bonnReminder), der Bot verschickt
+//    die Push-Nachricht, sobald ein Heimspiel ins jeweils eingestellte
+//    Zeitfenster faellt (jede/r bekommt sie nur einmal pro Spiel).
 //
 // Laeuft per GitHub Actions Cron (siehe .github/workflows/daily-bbl-check.yml)
 // mit einem Firebase-Dienstkonto (Admin SDK, umgeht die Firestore-Regeln
@@ -36,10 +45,18 @@
 
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import { computeLeagueTable, allFinished, regularSeasonGames } from "../../js/standings-core.js";
+import { getMessaging } from "firebase-admin/messaging";
+import {
+  computeLeagueTable, allFinished, regularSeasonGames, computeMatchdayScores, matchdayWinners
+} from "../../js/standings-core.js";
 
 const KICKOFF_DRIFT_MINUTES = 15; // ab wann eine Zeitabweichung als "echt" gilt (Rundungstoleranz)
 const BBL_URL = "https://www.easycredit-bbl.de/saison/aktuelle-spiele";
+
+// Muss exakt zu js/data.js (BONN_TEAM_NAME) passen. Dort als Konstante exportiert, aber dieses
+// Node-Skript kann js/data.js nicht importieren (das haengt am Firebase-Web-SDK/Browser).
+const BONN_TEAM_NAME = "Telekom Baskets Bonn";
+const COMPETITION_LABELS = { liga: "Liga", cl: "Champions League", pokal: "Netto BBL Pokal" };
 
 function initFirestore() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
@@ -222,6 +239,12 @@ async function runOnce(db) {
           awayScore: score.away,
           status: "finished"
         });
+        // ours ist dieselbe Objektreferenz wie in allGames/gamesByTeams - direkt mitschreiben,
+        // damit z.B. die Bonusfragen- und Spieltagssieger-Auswertung weiter unten in diesem
+        // Lauf schon den aktuellen Stand sieht (sonst erst beim naechsten stuendlichen Lauf).
+        ours.homeScore = score.home;
+        ours.awayScore = score.away;
+        ours.status = "finished";
         console.log(`Ergebnis eingetragen: ${bg.home} ${score.home}:${score.away} ${bg.away}`);
         resultsApplied++;
       } else if (ours.homeScore !== score.home || ours.awayScore !== score.away) {
@@ -261,14 +284,24 @@ async function runOnce(db) {
     }
   }
 
-  const bonusResolved = await resolveBonusQuestions(db, seasonId, allGames);
+  const matchdaysSnap = await db.collection("matchdays").where("seasonId", "==", seasonId).get();
+  const matchdays = matchdaysSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  const usersSnap = await db.collection("users").get();
+  const users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  const bonusResolved = await resolveBonusQuestions(db, seasonId, allGames, matchdays);
+  const winnersNotified = await notifyMatchdayWinners(db, seasonId, allGames, matchdays, users);
+  const bonnRemindersSent = await sendBonnReminders(db, seasonId, allGames, users);
 
   console.log(
     `Fertig. ${resultsApplied} Ergebnis(se) automatisch uebernommen, ` +
     `${resultMismatches} Abweichung(en) bei bestehenden Ergebnissen (nicht ueberschrieben), ` +
     `${kickoffFlags} Anstoss-Aenderung(en) vorgeschlagen, ` +
     `${unmatched} BBL-Spiel(e) ohne Zuordnung zu unseren Daten, ` +
-    `${bonusResolved} Bonusfrage(n) automatisch ausgewertet.`
+    `${bonusResolved} Bonusfrage(n) automatisch ausgewertet, ` +
+    `${winnersNotified} Spieltag(e) mit Sieger-Push benachrichtigt, ` +
+    `${bonnRemindersSent} Bonn-Heimspiel-Erinnerung(en) verschickt.`
   );
 }
 
@@ -279,7 +312,7 @@ async function runOnce(db) {
  * Meister?", da Playoffs noch nicht als Spieltage modelliert sind) bleiben
  * unberuehrt und muessen weiterhin manuell ueber "Aufloesen" bearbeitet werden.
  */
-async function resolveBonusQuestions(db, seasonId, allGames) {
+async function resolveBonusQuestions(db, seasonId, allGames, matchdays) {
   const questionsSnap = await db.collection("bonusQuestions").where("seasonId", "==", seasonId).get();
   const openAutoQuestions = questionsSnap.docs
     .map((d) => ({ id: d.id, ...d.data() }))
@@ -287,8 +320,6 @@ async function resolveBonusQuestions(db, seasonId, allGames) {
 
   if (!openAutoQuestions.length) return 0;
 
-  const matchdaysSnap = await db.collection("matchdays").where("seasonId", "==", seasonId).get();
-  const matchdays = matchdaysSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const regGames = regularSeasonGames(allGames, matchdays);
 
   if (!allFinished(regGames)) {
@@ -328,6 +359,136 @@ function resolveAutoQuestion(rule, table) {
     return [String(idx + 1)];
   }
   return null;
+}
+
+function displayName(user) {
+  return user?.displayName || user?.email || "Jemand";
+}
+
+/**
+ * Sendet eine Push-Nachricht an eine Liste von Nutzer:innen (anhand ihrer fcmTokens).
+ * Ignoriert Nutzer:innen ohne Token. Loggt Fehler pro Token, bricht aber nicht ab -
+ * ein einzelner ungueltiger/abgelaufener Token soll nicht den ganzen Lauf stoppen.
+ */
+async function sendPush(recipients, { title, body }) {
+  const tokens = recipients.flatMap((u) => u.fcmTokens || []);
+  if (!tokens.length) return 0;
+  try {
+    const res = await getMessaging().sendEachForMulticast({
+      tokens,
+      notification: { title, body }
+    });
+    if (res.failureCount) {
+      console.warn(`  ${res.failureCount}/${tokens.length} Push-Zustellung(en) fehlgeschlagen (z.B. abgelaufene Tokens).`);
+    }
+    return res.successCount;
+  } catch (err) {
+    console.warn("  Push-Versand fehlgeschlagen:", err.message);
+    return 0;
+  }
+}
+
+/**
+ * Prueft jeden Spieltag, der noch nicht als "Sieger benachrichtigt" markiert ist. Sobald alle
+ * Spiele eines Spieltags beendet sind, wird einmalig eine Push-Nachricht an alle Nutzer:innen
+ * verschickt, die das nicht deaktiviert haben (users/{uid}.notifyMatchdayWinner !== false).
+ */
+async function notifyMatchdayWinners(db, seasonId, allGames, matchdays, users) {
+  const candidates = matchdays.filter((md) => !md.winnerNotifiedAt);
+  if (!candidates.length) return 0;
+
+  let tipsSnap = null; // nur laden, falls tatsaechlich ein Spieltag fertig ist (spart Lesezugriffe)
+  let notifiedCount = 0;
+
+  for (const md of candidates) {
+    const games = allGames.filter((g) => g.matchdayId === md.id);
+    if (!allFinished(games)) continue;
+
+    if (!tipsSnap) {
+      tipsSnap = await db.collection("tips").where("seasonId", "==", seasonId).get();
+    }
+    const tips = tipsSnap.docs.map((d) => d.data());
+
+    const scores = computeMatchdayScores(games, tips);
+    const { winners, max } = matchdayWinners(scores);
+    const usersById = Object.fromEntries(users.map((u) => [u.id, u]));
+
+    const body = winners.length
+      ? `${winners.map((uid) => displayName(usersById[uid])).join(", ")} gewinnt mit ${max} ${max === 1 ? "Punkt" : "Punkten"}.`
+      : "Ausgewertet - diesmal ohne eindeutigen Sieger.";
+
+    const recipients = users.filter((u) => u.notifyMatchdayWinner !== false && u.fcmTokens?.length);
+    const sent = await sendPush(recipients, { title: `🏀 ${md.label} beendet`, body });
+
+    await db.collection("matchdays").doc(md.id).update({ winnerNotifiedAt: Timestamp.now() });
+    console.log(`Spieltag "${md.label}" komplett beendet -> Sieger-Push an ${sent} Geraet(e) verschickt.`);
+    notifiedCount++;
+  }
+
+  return notifiedCount;
+}
+
+/**
+ * Verschickt Heimspiel-Erinnerungen fuer die Telekom Baskets Bonn (Liga + Zusatzspiele aus
+ * bonnExtraGames) an alle Nutzer:innen mit aktivierter Erinnerung, sobald ein Heimspiel in ihr
+ * jeweils eingestelltes Zeitfenster faellt. Jede Person bekommt jede Erinnerung nur einmal
+ * (Tracking in der remindersSent-Collection, dieselbe wie fuer die Anstoss-Vorschlaege).
+ */
+async function sendBonnReminders(db, seasonId, allGames, users) {
+  const withReminder = users.filter((u) => u.bonnReminder?.enabled && u.fcmTokens?.length);
+  if (!withReminder.length) return 0;
+
+  const now = Date.now();
+
+  const bonnLeagueHomeGames = allGames
+    .filter((g) => g.homeTeamName === BONN_TEAM_NAME && g.status !== "finished")
+    .map((g) => ({ id: g.id, competition: "liga", opponent: g.awayTeamName, kickoffMs: g.kickoff.toMillis() }));
+
+  const extraSnap = await db.collection("bonnExtraGames").where("seasonId", "==", seasonId).get();
+  const bonnExtraHomeGames = extraSnap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((g) => g.isHome && g.status !== "finished")
+    .map((g) => ({ id: g.id, competition: g.competition, opponent: g.opponent, kickoffMs: g.kickoff.toMillis() }));
+
+  const upcomingHomeGames = [...bonnLeagueHomeGames, ...bonnExtraHomeGames].filter((g) => g.kickoffMs > now);
+  if (!upcomingHomeGames.length) return 0;
+
+  let sentCount = 0;
+  for (const game of upcomingHomeGames) {
+    const dueUsers = [];
+    for (const user of withReminder) {
+      const prefs = user.bonnReminder;
+      const competitions = prefs.competitions?.length ? prefs.competitions : ["liga", "cl", "pokal"];
+      if (!competitions.includes(game.competition)) continue;
+      const hoursBefore = Number(prefs.hoursBefore) || 3;
+      if (game.kickoffMs - now > hoursBefore * 3600 * 1000) continue; // noch nicht im Zeitfenster
+
+      const remindKey = `${user.id}_${game.id}_bonn`;
+      const alreadySent = await db.collection("remindersSent").doc(remindKey).get();
+      if (alreadySent.exists) continue;
+
+      dueUsers.push({ user, remindKey });
+    }
+    if (!dueUsers.length) continue;
+
+    const kickoffLabel = new Date(game.kickoffMs).toLocaleString("de-DE", {
+      weekday: "short", hour: "2-digit", minute: "2-digit"
+    });
+    const sent = await sendPush(dueUsers.map((d) => d.user), {
+      title: "🏀 Heimspiel steht an",
+      body: `Bonn – ${game.opponent} · ${kickoffLabel} Uhr (${COMPETITION_LABELS[game.competition] || game.competition})`
+    });
+    sentCount += sent;
+
+    const batch = db.batch();
+    for (const { remindKey } of dueUsers) {
+      batch.set(db.collection("remindersSent").doc(remindKey), { sentAt: Timestamp.now() });
+    }
+    await batch.commit();
+    console.log(`Heimspiel-Erinnerung fuer Bonn – ${game.opponent} an ${sent} Geraet(e) verschickt.`);
+  }
+
+  return sentCount;
 }
 
 main()
