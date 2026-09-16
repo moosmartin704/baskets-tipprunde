@@ -133,7 +133,42 @@ function parseResult(bblGame) {
   return null;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fuehrt den eigentlichen Check aus und wiederholt bei "RESOURCE_EXHAUSTED"
+ * (Google-Cloud-Kontingent kurzzeitig ausgeschoepft - kommt bei frisch
+ * angelegten Firebase-Projekten in den ersten 1-2 Tagen gelegentlich vor,
+ * bis Google die Standard-Kontingente automatisch erhoeht) mit steigender
+ * Wartezeit. Alle Operationen in runOnce() sind idempotent (erneutes
+ * Ausfuehren richtet keinen Schaden an), ein kompletter Neuversuch ist
+ * deshalb sicher.
+ */
 async function main() {
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await runOnce();
+      return;
+    } catch (err) {
+      const isQuotaError = err?.code === 8 || /RESOURCE_EXHAUSTED|Quota exceeded/i.test(String(err?.message));
+      if (isQuotaError && attempt < maxAttempts) {
+        const waitSeconds = attempt * 15;
+        console.warn(
+          `Google-Cloud-Kontingent kurzzeitig ausgeschoepft (Versuch ${attempt}/${maxAttempts}). ` +
+          `Warte ${waitSeconds}s und versuche es erneut...`
+        );
+        await sleep(waitSeconds * 1000);
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+async function runOnce() {
   const db = initFirestore();
 
   const seasonsSnap = await db.collection("seasons").where("isActive", "==", true).limit(1).get();
