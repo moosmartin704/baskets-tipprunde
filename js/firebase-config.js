@@ -6,12 +6,12 @@
 // Eine ausführliche Anleitung dazu steht in der README.md.
 // ============================================================================
 export const firebaseConfig = {
-  apiKey: "DEIN_API_KEY",
-  authDomain: "DEIN_PROJEKT.firebaseapp.com",
-  projectId: "DEIN_PROJEKT",
-  storageBucket: "DEIN_PROJEKT.appspot.com",
-  messagingSenderId: "DEINE_SENDER_ID",
-  appId: "DEINE_APP_ID"
+  apiKey: "AIzaSyCYYNvfoG43Xr9l23RVxlEDYkkSMPwRLY8",
+  authDomain: "baskets-tipprunde.firebaseapp.com",
+  projectId: "baskets-tipprunde",
+  storageBucket: "baskets-tipprunde.firebasestorage.app",
+  messagingSenderId: "761869689864",
+  appId: "1:761869689864:web:8c015489d3bef8d6049dbd"
 };
 
 // Für Push-Benachrichtigungen: Firebase-Konsole -> Projekteinstellungen -> Cloud Messaging ->
