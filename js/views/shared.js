@@ -10,9 +10,12 @@ import { icon, teamCode, teamTag } from "../ui.js";
  * opts.seasonGames (optional): alle Spiele der Saison, um die Form der Teams anzuzeigen.
  * opts.adminEditor (optional): Ergebnis-Eingabe aus renderResultEditor() – der Link landet unter
  * der Uhrzeit, das Formular klappt unter der Zeile auf.
+ * opts.matchdayLabel (optional): kurzes Label (z.B. "1. Spieltag"), erscheint klein unter der
+ * Uhrzeit – sinnvoll überall dort, wo Spiele verschiedener Spieltage gemischt auftauchen (z.B.
+ * "Offene Tipps" auf der Übersicht, da einzelne Spiele auf andere Termine verlegt sein können).
  */
 export function renderGameRow(game, myTip, opts = {}) {
-  const { onPick, seasonGames, adminEditor } = opts;
+  const { onPick, seasonGames, adminEditor, matchdayLabel } = opts;
   const kickoff = tsToDate(game.kickoff);
   const finished = game.status === "finished";
   const started = () => Date.now() >= kickoff.getTime();
@@ -25,6 +28,7 @@ export function renderGameRow(game, myTip, opts = {}) {
 
   const timeCol = el("div", { class: "game-time" }, [
     el("div", { class: "game-clock" }, fmtTime(kickoff)),
+    matchdayLabel ? el("div", { class: "game-matchday" }, matchdayLabel) : null,
     finished
       ? el("div", { class: "game-state" }, "Ende")
       : locked ? el("div", { class: "game-state is-live" }, "Läuft") : null,

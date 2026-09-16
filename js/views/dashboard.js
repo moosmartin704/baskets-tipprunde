@@ -1,6 +1,6 @@
 import { state } from "../state.js";
 import {
-  listGamesForSeason, listBonusRounds, listBonusQuestionsForSeason,
+  listGamesForSeason, listMatchdays, listBonusRounds, listBonusQuestionsForSeason,
   getMyTip, setMyTip, getMyBonusAnswer, tsToDate
 } from "../data.js";
 import { el, toast, fmtDayShort, dayKey } from "../util.js";
@@ -26,11 +26,13 @@ export async function renderDashboard(container) {
   const now = Date.now();
   const horizon = now + HORIZON_DAYS * 24 * 60 * 60 * 1000;
 
-  const [games, bonusRounds, bonusQuestions] = await Promise.all([
+  const [games, matchdays, bonusRounds, bonusQuestions] = await Promise.all([
     listGamesForSeason(season.id),
+    listMatchdays(season.id),
     listBonusRounds(season.id),
     listBonusQuestionsForSeason(season.id)
   ]);
+  const matchdayById = Object.fromEntries(matchdays.map((m) => [m.id, m]));
 
   const upcoming = games.filter((g) => {
     const t = tsToDate(g.kickoff).getTime();
@@ -89,6 +91,7 @@ export async function renderDashboard(container) {
       for (const game of group.games) {
         sheetItems.push(renderGameRow(game, { picked: tipByGame.get(game.id) }, {
           seasonGames: games,
+          matchdayLabel: matchdayById[game.matchdayId]?.label,
           onPick: async (picked) => {
             await setMyTip(state.user.uid, season.id, game.matchdayId, game.id, picked, game.kickoff);
             tipByGame.set(game.id, picked);

@@ -418,6 +418,12 @@ body[data-theme="magenta"] .stat-label { color: rgba(255, 255, 255, 0.85); }
   color: var(--muted);
 }
 .game-state.is-live { color: var(--mg); }
+.game-matchday {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
 
 .game-teams { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .team-line { display: flex; align-items: flex-start; gap: 8px; }
