@@ -16,6 +16,11 @@ export async function listSeasons() {
     .sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
 }
 
+export async function getSeason(seasonId) {
+  const s = await getDoc(doc(db, "seasons", seasonId));
+  return s.exists() ? { id: s.id, ...s.data() } : null;
+}
+
 export async function getActiveSeason() {
   const seasons = await listSeasons();
   return seasons.find((s) => s.isActive) || seasons[0] || null;

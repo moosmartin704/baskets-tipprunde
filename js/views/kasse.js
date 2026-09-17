@@ -4,7 +4,7 @@
 import { state, displayNameFor } from "../state.js";
 import {
   listMatchdays, listGamesForSeason, listBonusRounds, listBonusQuestionsForSeason,
-  listTipsForSeason, listBonusAnswersForSeason, listUsers,
+  listTipsForSeason, listBonusAnswersForSeason, listUsers, getSeason,
   updateSeasonMoneyConfig, listPayouts, setPayoutStatus, payoutDocId, tsToDate
 } from "../data.js";
 import { computeSeasonStandings } from "../scoring.js";
@@ -24,8 +24,8 @@ export async function renderKassePage(container) {
   setTheme("ink");
   container.appendChild(loadingView("Lade Kasse …"));
 
-  const season = state.activeSeason;
-  if (!season) {
+  const activeSeason = state.activeSeason;
+  if (!activeSeason) {
     container.innerHTML = "";
     container.append(
       poster([posterBar(backLink("#/profile", "Profil")), posterTitle([["Kasse"]], "is-medium")]),
@@ -34,11 +34,17 @@ export async function renderKassePage(container) {
     return;
   }
 
-  const [matchdays, games, bonusRounds, questions, tips, answers, users, payouts] = await Promise.all([
-    listMatchdays(season.id), listGamesForSeason(season.id), listBonusRounds(season.id),
-    listBonusQuestionsForSeason(season.id), listTipsForSeason(season.id),
-    listBonusAnswersForSeason(season.id), listUsers(), listPayouts(season.id)
+  // Saison frisch laden: state.activeSeason stammt vom App-Start und kennt spätere
+  // Änderungen an den Kasse-Einstellungen (z. B. neu hinzugefügte Teilnehmer:innen) nicht.
+  const seasonId = activeSeason.id;
+  const [freshSeason, matchdays, games, bonusRounds, questions, tips, answers, users, payouts] = await Promise.all([
+    getSeason(seasonId),
+    listMatchdays(seasonId), listGamesForSeason(seasonId), listBonusRounds(seasonId),
+    listBonusQuestionsForSeason(seasonId), listTipsForSeason(seasonId),
+    listBonusAnswersForSeason(seasonId), listUsers(), listPayouts(seasonId)
   ]);
+  const season = freshSeason || activeSeason;
+  state.activeSeason = season;
   state.usersById = Object.fromEntries(users.map((u) => [u.id, u]));
 
   const gamesByMatchday = {};
