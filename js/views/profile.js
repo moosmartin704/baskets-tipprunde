@@ -38,6 +38,15 @@ export async function renderProfile(container) {
     el("div", { class: "list-end" }, icon("chevR", 20, 2))
   ]));
 
+  items.push(el("a", { class: "list-link is-feature", href: "#/kasse" }, [
+    el("div", { class: "icon-badge" }, icon("wallet", 22)),
+    el("div", { class: "list-body" }, [
+      el("div", { class: "list-title" }, "Kasse"),
+      el("div", { class: "list-sub" }, "Wer hat welchen Spieltag gewonnen, was wurde ausgezahlt")
+    ]),
+    el("div", { class: "list-end" }, icon("chevR", 20, 2))
+  ]));
+
   if (state.isAdmin) {
     items.push(el("a", { class: "list-link is-feature", href: "#/admin" }, [
       el("div", { class: "icon-badge" }, icon("settings", 22)),

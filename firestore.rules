@@ -66,6 +66,12 @@ service cloud.firestore {
     match /pendingChanges/{id} {
       allow read, write: if isAdmin();
     }
+    // Kasse: wer hat welchen Spieltag/welche Bonusrunde/die Saison gewonnen und wurde das
+    // ausgezahlt. Für alle sichtbar (Transparenz in der Runde), nur Admins tragen ein.
+    match /payouts/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
     match /remindersSent/{id} {
       allow read, write: if isAdmin();
     }

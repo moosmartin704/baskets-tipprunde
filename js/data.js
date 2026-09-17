@@ -44,6 +44,17 @@ export async function renameSeason(seasonId, name) {
   await updateDoc(doc(db, "seasons", seasonId), { name });
 }
 
+/**
+ * Einstellungen für die "Kasse" (Spieltagssieger-Auszahlungen), an der Saison hinterlegt:
+ * wer zahlende:r Teilnehmer:in ist und wie hoch die Einsätze sind. participantIds bezieht sich
+ * auf Dokument-IDs aus der "users"-Sammlung.
+ */
+export async function updateSeasonMoneyConfig(seasonId, { perMatchdayFee, seasonFee, participantIds }) {
+  await updateDoc(doc(db, "seasons", seasonId), {
+    money: { perMatchdayFee, seasonFee, participantIds }
+  });
+}
+
 /* ----------------------------- Teams ------------------------------ */
 
 export async function listTeams(seasonId) {
@@ -441,6 +452,26 @@ export async function updateAppConfig(patch) {
 
 export async function saveFcmToken(uid, token) {
   await updateDoc(doc(db, "users", uid), { fcmTokens: arrayUnion(token) });
+}
+
+/* ----------------------------------- Kasse ---------------------------------- */
+// Ob eine Spieltags-/Bonusrunden-/Saisonauszahlung schon an den/die Gewinner:in ausgezahlt wurde.
+// Eine Zeile pro Spieltag/Bonusrunde/Saison (nicht pro Person), da der Spielleiter das Geld in
+// der Praxis gesammelt für alle Gewinner:innen eines Eintrags auszahlt.
+
+export function payoutDocId(seasonId, kind, refId) {
+  return `${seasonId}_${kind}_${refId}`;
+}
+
+export async function listPayouts(seasonId) {
+  const snap = await getDocs(query(col("payouts"), where("seasonId", "==", seasonId)));
+  return Object.fromEntries(snap.docs.map((d) => [d.id, d.data()]));
+}
+
+export async function setPayoutStatus(seasonId, kind, refId, paid) {
+  await setDoc(doc(db, "payouts", payoutDocId(seasonId, kind, refId)), {
+    seasonId, kind, refId, paid, paidAt: paid ? serverTimestamp() : null
+  }, { merge: true });
 }
 
 /* --------------------------------- Utils ----------------------------------- */
