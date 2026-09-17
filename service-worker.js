@@ -1,4 +1,4 @@
-const CACHE_NAME = "baskets-tipprunde-v11";
+const CACHE_NAME = "baskets-tipprunde-v12";
 const FONT_CACHE = "baskets-tipprunde-fonts-v1";
 const APP_SHELL = [
   "./",
@@ -49,10 +49,15 @@ try {
     messagingSenderId: "761869689864",
     appId: "1:761869689864:web:8c015489d3bef8d6049dbd"
   });
+  // Bewusst ein "data"-Payload (siehe js/data.js sendPush und scripts/*/*.mjs), kein
+  // "notification"-Payload: Bei "notification"-Payloads zeigt der Browser die
+  // Benachrichtigung im Hintergrund selbst automatisch an UND dieser Handler hier feuert
+  // zusätzlich - das führte zu doppelten Benachrichtigungen pro Push. Mit reinem
+  // "data"-Payload übernimmt ausschließlich dieser Handler die Anzeige, kein Duplikat mehr.
   const messaging = firebase.messaging();
   messaging.onBackgroundMessage((payload) => {
-    const title = payload.notification?.title || "Baskets Tipprunde";
-    const body = payload.notification?.body || "";
+    const title = payload.data?.title || "Baskets Tipprunde";
+    const body = payload.data?.body || "";
     self.registration.showNotification(title, {
       body, icon: "icons/icon-192.png", badge: "icons/icon-192.png"
     });

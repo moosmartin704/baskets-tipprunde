@@ -46,7 +46,10 @@ async function main() {
   }
 
   console.log(`Verschicke Ankuendigung an ${tokens.length} Geraet(e): "${title}" / "${body}"`);
-  const res = await getMessaging().sendEachForMulticast({ tokens, notification: { title, body } });
+  // "data"-Payload statt "notification" (siehe check.mjs sendPush()): vermeidet doppelte
+  // Benachrichtigungen, da sonst sowohl der Browser automatisch als auch der
+  // onBackgroundMessage-Handler in service-worker.js je eine Anzeige ausloesen.
+  const res = await getMessaging().sendEachForMulticast({ tokens, data: { title, body } });
   console.log(`Fertig: ${res.successCount} erfolgreich, ${res.failureCount} fehlgeschlagen.`);
   if (res.failureCount) {
     res.responses.forEach((r, i) => {

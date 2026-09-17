@@ -374,9 +374,13 @@ async function sendPush(recipients, { title, body }) {
   const tokens = recipients.flatMap((u) => u.fcmTokens || []);
   if (!tokens.length) return 0;
   try {
+    // "data"-Payload statt "notification": bei "notification"-Payloads zeigt der Browser die
+    // Nachricht im Hintergrund automatisch an UND der onBackgroundMessage-Handler in
+    // service-worker.js feuert zusaetzlich - das fuehrte zu doppelten Benachrichtigungen.
+    // Mit reinem "data"-Payload uebernimmt ausschliesslich der Service-Worker-Handler die Anzeige.
     const res = await getMessaging().sendEachForMulticast({
       tokens,
-      notification: { title, body }
+      data: { title, body }
     });
     if (res.failureCount) {
       console.warn(`  ${res.failureCount}/${tokens.length} Push-Zustellung(en) fehlgeschlagen (z.B. abgelaufene Tokens).`);
