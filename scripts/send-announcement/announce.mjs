@@ -6,6 +6,10 @@
 // an die ganze Runde handelt (z.B. Saisonbegruessung), nicht um eine der
 // bestehenden automatischen Benachrichtigungsarten.
 //
+// Optional laesst sich per ANNOUNCE_TARGET (Anzeigename, siehe workflow-Input
+// "target") auf eine einzelne Person eingrenzen, z.B. fuer einen Testversand
+// an nur eine Person statt an die ganze Runde.
+//
 // Nur manuell ueber "workflow_dispatch" auslösbar (siehe
 // .github/workflows/send-announcement.yml, Tab "Actions" im Repo), kein
 // Zeitplan - dafuer ist bewusst ein bewusster Klick noetig, damit nicht aus
@@ -36,12 +40,25 @@ async function main() {
     throw new Error("ANNOUNCE_TITLE und ANNOUNCE_BODY muessen gesetzt sein.");
   }
 
+  const target = (process.env.ANNOUNCE_TARGET || "").trim();
+
   const db = initFirestore();
   const usersSnap = await db.collection("users").get();
-  const tokens = usersSnap.docs.flatMap((d) => d.data().fcmTokens || []);
+  let users = usersSnap.docs.map((d) => d.data());
+
+  if (target) {
+    users = users.filter((u) => (u.displayName || "").toLowerCase() === target.toLowerCase());
+    if (!users.length) {
+      throw new Error(`Niemand mit Anzeigename "${target}" gefunden - Versand abgebrochen.`);
+    }
+  }
+
+  const tokens = users.flatMap((u) => u.fcmTokens || []);
 
   if (!tokens.length) {
-    console.log("Keine registrierten Geraetetokens gefunden - nichts zu verschicken.");
+    console.log(target
+      ? `"${target}" hat kein registriertes Geraet - nichts zu verschicken.`
+      : "Keine registrierten Geraetetokens gefunden - nichts zu verschicken.");
     return;
   }
 

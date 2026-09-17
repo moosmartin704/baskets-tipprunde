@@ -15,6 +15,10 @@ on:
         description: "Text der Push-Nachricht"
         required: true
         default: "Herzlich willkommen zur Baskets Tipprunde der easyCredit BBL! Wir wünschen euch viel Spaß und gute Tipps in dieser Saison 🍀"
+      target:
+        description: "Nur an eine Person schicken (Anzeigename, z.B. „Lucas“) - leer lassen für alle"
+        required: false
+        default: ""
 
 jobs:
   announce:
@@ -36,4 +40,5 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
           ANNOUNCE_TITLE: ${{ github.event.inputs.title }}
           ANNOUNCE_BODY: ${{ github.event.inputs.body }}
+          ANNOUNCE_TARGET: ${{ github.event.inputs.target }}
         run: node announce.mjs
