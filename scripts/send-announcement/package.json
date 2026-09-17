@@ -1,0 +1,9 @@
+{
+  "name": "send-announcement",
+  "private": true,
+  "type": "module",
+  "description": "Manuell auslösbarer Versand einer Push-Nachricht an alle registrierten Geraete (z.B. Saison-Begruessung).",
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}
