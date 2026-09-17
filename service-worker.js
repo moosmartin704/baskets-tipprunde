@@ -1,4 +1,4 @@
-const CACHE_NAME = "baskets-tipprunde-v12";
+const CACHE_NAME = "baskets-tipprunde-v13";
 const FONT_CACHE = "baskets-tipprunde-fonts-v1";
 const APP_SHELL = [
   "./",
@@ -65,6 +65,21 @@ try {
 } catch (err) {
   console.warn("Firebase Messaging im Service Worker nicht verfügbar:", err);
 }
+
+// Ohne diesen Handler passiert beim Antippen einer Hintergrund-Benachrichtigung nichts
+// (v.a. auf Android/Chrome) - er öffnet ein vorhandenes Tab (fokussiert es) oder startet
+// die App neu, falls gerade kein Tab offen ist.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.registration.scope) && "focus" in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow("./");
+    })
+  );
+});
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
