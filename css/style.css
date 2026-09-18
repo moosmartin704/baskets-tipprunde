@@ -418,6 +418,34 @@ body[data-theme="magenta"] .stat-label { color: rgba(255, 255, 255, 0.85); }
   color: var(--muted);
 }
 .game-state.is-live { color: var(--mg); }
+
+/* Laufende Spiele oben auf der Übersicht */
+.live-title { display: flex; align-items: center; gap: 10px; color: var(--mg); }
+.live-dot {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--mg);
+}
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--mg);
+  animation: live-pulse 1.6s ease-out infinite;
+}
+@keyframes live-pulse { from { opacity: 0.6; transform: scale(1); } to { opacity: 0; transform: scale(2.6); } }
+.live-card {
+  margin: 4px 0 2px;
+  padding: 2px 14px;
+  border: 2px solid var(--mg);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: 0 16px 30px -18px var(--mg);
+}
+.live-card .game:last-child { border-bottom: 0; }
 .game-matchday {
   font-size: 10px;
   font-weight: 600;

@@ -11,6 +11,10 @@ import {
 import { renderGameRow } from "./shared.js";
 
 const HORIZON_DAYS = 14;
+// So lange nach Anpfiff gilt ein Spiel ohne Ergebnis als laufend: Spielzeit samt Verlängerung plus
+// bis zu einer Stunde, bis der stündliche BBL-Abgleich das Ergebnis einträgt. Danach verschwindet
+// es von der Übersicht, auch falls das Ergebnis fehlt.
+const LIVE_WINDOW_HOURS = 4;
 
 export async function renderDashboard(container) {
   setTheme("magenta");
@@ -34,6 +38,11 @@ export async function renderDashboard(container) {
   ]);
   const matchdayById = Object.fromEntries(matchdays.map((m) => [m.id, m]));
 
+  const liveSince = now - LIVE_WINDOW_HOURS * 60 * 60 * 1000;
+  const live = games.filter((g) => {
+    const t = tsToDate(g.kickoff).getTime();
+    return g.status !== "finished" && t <= now && t > liveSince;
+  });
   const upcoming = games.filter((g) => {
     const t = tsToDate(g.kickoff).getTime();
     return g.status !== "finished" && t > now && t <= horizon;
@@ -43,10 +52,10 @@ export async function renderDashboard(container) {
   const openQuestions = bonusQuestions.filter((q) => !q.resolved && !isBonusRoundLocked(bonusRoundById[q.bonusRoundId]));
 
   const [tips, answers] = await Promise.all([
-    Promise.all(upcoming.map((g) => getMyTip(state.user.uid, g.id))),
+    Promise.all([...live, ...upcoming].map((g) => getMyTip(state.user.uid, g.id))),
     Promise.all(openQuestions.map((q) => getMyBonusAnswer(state.user.uid, q.id)))
   ]);
-  const tipByGame = new Map(upcoming.map((g, i) => [g.id, tips[i]?.picked || null]));
+  const tipByGame = new Map([...live, ...upcoming].map((g, i) => [g.id, tips[i]?.picked || null]));
   const unanswered = openQuestions.filter((q, i) => !answers[i]?.selected?.length);
 
   // Kopfbereich – Überschrift und Zeile darunter werden nach jedem Tipp aktualisiert.
@@ -54,16 +63,18 @@ export async function renderDashboard(container) {
   const subEl = posterSub("");
   function updateSummary() {
     const total = upcoming.length;
-    const tipped = [...tipByGame.values()].filter(Boolean).length;
+    const tipped = upcoming.filter((g) => tipByGame.get(g.id)).length;
     const open = total - tipped;
     const lines = total === 0
-      ? [["Keine"], ["Spiele", "ink"]]
+      ? live.length
+        ? [[live.length === 1 ? "Spiel" : "Spiele"], [live.length === 1 ? "läuft" : "laufen", "ink"]]
+        : [["Keine"], ["Spiele", "ink"]]
       : open === 0
         ? [["Alles"], ["getippt", "ink"]]
         : [[`${open} ${open === 1 ? "Tipp" : "Tipps"}`], ["offen", "ink"]];
     titleHost.replaceChildren(posterTitle(lines));
     subEl.textContent = total === 0
-      ? `In den nächsten ${HORIZON_DAYS} Tagen steht kein Spiel an.`
+      ? `In den nächsten ${HORIZON_DAYS} Tagen steht ${live.length ? "kein weiteres" : "kein"} Spiel an.`
       : `Nächste ${HORIZON_DAYS} Tage · ${tipped} von ${total} getippt`;
   }
   updateSummary();
@@ -79,10 +90,26 @@ export async function renderDashboard(container) {
   }
 
   const sheetItems = [];
+  if (live.length) {
+    // Laufende Spiele bleiben oben stehen (Tipp gesperrt, eigener Tipp sichtbar) und sind hervorgehoben.
+    sheetItems.push(
+      el("div", { class: "sec-head" }, [
+        el("h2", { class: "sec-title live-title" }, [el("span", { class: "live-dot", "aria-hidden": "true" }), "Live"]),
+        el("div", { class: "sec-rule" }),
+        el("div", { class: "sec-count" }, live.length === 1 ? "Läuft gerade" : `${live.length} Spiele laufen`)
+      ]),
+      el("div", { class: "live-card" }, live.map((game) =>
+        renderGameRow(game, { picked: tipByGame.get(game.id) }, {
+          seasonGames: games,
+          matchdayLabel: matchdayById[game.matchdayId]?.label
+        })
+      ))
+    );
+  }
   if (!upcoming.length) {
     sheetItems.push(emptyState(
       "Spielfrei",
-      `In den nächsten ${HORIZON_DAYS} Tagen stehen keine Spiele an. Alle Paarungen findest du unter „Spieltage“.`,
+      `In den nächsten ${HORIZON_DAYS} Tagen stehen keine ${live.length ? "weiteren " : ""}Spiele an. Alle Paarungen findest du unter „Spieltage“.`,
       el("a", { class: "btn btn-ink", href: "#/matchdays" }, "Zu den Spieltagen")
     ));
   } else {
