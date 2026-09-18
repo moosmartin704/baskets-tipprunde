@@ -475,8 +475,10 @@ async function sendBonnReminders(db, seasonId, allGames, users) {
     }
     if (!dueUsers.length) continue;
 
+    // timeZone explizit setzen: der GitHub-Runner laeuft in UTC, sonst stuende im Push
+    // z. B. "18:00 Uhr" statt "20:00 Uhr" (im Winter 19:00).
     const kickoffLabel = new Date(game.kickoffMs).toLocaleString("de-DE", {
-      weekday: "short", hour: "2-digit", minute: "2-digit"
+      weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin"
     });
     const sent = await sendPush(dueUsers.map((d) => d.user), {
       title: "🏀 Heimspiel steht an",
