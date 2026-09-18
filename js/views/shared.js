@@ -17,6 +17,8 @@ import { state, displayNameFor } from "../state.js";
  * opts.roundTips (optional): alle Tipps der Runde zu diesem Spiel. Werden erst ab Anpfiff unter der
  * Zeile angezeigt – vorher bleiben fremde Tipps verborgen, egal was übergeben wird.
  * opts.participantIds (optional): wer mittippt – wer davon keinen Tipp hat, steht unter „Kein Tipp“.
+ * Läuft das Spiel und hat der BBL-Bot einen aktuellen Zwischenstand geschrieben (game.live), zeigt
+ * die Zeile ihn statt „Läuft“ an: Viertel, Restzeit und Punkte.
  */
 export function renderGameRow(game, myTip, opts = {}) {
   const { onPick, seasonGames, adminEditor, matchdayLabel, roundTips, participantIds } = opts;
@@ -25,6 +27,7 @@ export function renderGameRow(game, myTip, opts = {}) {
   const started = () => Date.now() >= kickoff.getTime();
   const locked = finished || started();
   const winner = gameWinner(game);
+  const live = !finished && locked ? freshLive(game.live) : null;
   let picked = myTip?.picked || null;
 
   const homeTag = teamTag(game.homeTeamName, picked === "home");
@@ -35,13 +38,13 @@ export function renderGameRow(game, myTip, opts = {}) {
     matchdayLabel ? el("div", { class: "game-matchday" }, matchdayLabel) : null,
     finished
       ? el("div", { class: "game-state" }, "Ende")
-      : locked ? el("div", { class: "game-state is-live" }, "Läuft") : null,
+      : locked ? liveState(live) : null,
     adminEditor?.toggle
   ]);
 
   const teamsCol = el("div", { class: "game-teams" }, [
-    teamLine(game.homeTeamName, homeTag, finished ? scoreEl(game.homeScore, winner !== "home") : null, seasonGames),
-    teamLine(game.awayTeamName, awayTag, finished ? scoreEl(game.awayScore, winner !== "away") : null, seasonGames)
+    teamLine(game.homeTeamName, homeTag, finished ? scoreEl(game.homeScore, winner !== "home") : liveScore(live, "home"), seasonGames),
+    teamLine(game.awayTeamName, awayTag, finished ? scoreEl(game.awayScore, winner !== "away") : liveScore(live, "away"), seasonGames)
   ]);
 
   const row = el("div", { class: "game" }, [timeCol, teamsCol]);
@@ -193,6 +196,39 @@ function teamLine(name, tag, score, seasonGames) {
     el("div", { class: "team-name" }, [name, formDots(seasonGames, name)]),
     score
   ]);
+}
+
+// Schreibt der Bot länger nichts mehr (z. B. weil sein Lauf abgebrochen ist), wird der
+// Zwischenstand nicht mehr angezeigt – lieber „Läuft“ als ein veralteter Spielstand.
+// Der Bot frischt ihn auch ohne Änderung alle 5 Minuten auf (z. B. in der Halbzeit).
+const LIVE_STALE_MINUTES = 15;
+
+function freshLive(live) {
+  if (!live?.updatedAt) return null;
+  return Date.now() - tsToDate(live.updatedAt).getTime() < LIVE_STALE_MINUTES * 60 * 1000 ? live : null;
+}
+
+/** „Läuft“ bzw. Viertel und Restzeit laut BBL, z. B. „Q4“ über „7:48“; nach dem Schlusspfiff „Ende“. */
+function liveState(live) {
+  if (!live) return el("div", { class: "game-state is-live" }, "Läuft");
+  if (live.status === "POST" || live.period === "E") return el("div", { class: "game-state is-live", title: "Abgepfiffen, Ergebnis noch nicht offiziell" }, "Ende");
+  const period = /^(Q[1-4]|OT\d*)$/.test(live.period || "") ? live.period : "Live";
+  const clock = fmtLiveClock(live.clock);
+  return el("div", { class: "game-state is-live", title: "Live-Stand laut BBL" }, [
+    period,
+    clock ? el("span", { class: "game-live-clock" }, clock) : null
+  ]);
+}
+
+/** "00:07:48" (Restzeit laut BBL) -> "7:48" */
+function fmtLiveClock(value) {
+  const m = /^(?:\d+:)?(\d{1,2}):(\d{2})$/.exec(value || "");
+  return m ? `${Number(m[1])}:${m[2]}` : "";
+}
+
+function liveScore(live, side) {
+  if (live?.[side] == null) return null;
+  return el("div", { class: "team-score is-live" }, String(live[side]));
 }
 
 function scoreEl(value, isLoser) {

@@ -437,15 +437,24 @@ body[data-theme="magenta"] .stat-label { color: rgba(255, 255, 255, 0.85); }
   animation: live-pulse 1.6s ease-out infinite;
 }
 @keyframes live-pulse { from { opacity: 0.6; transform: scale(1); } to { opacity: 0; transform: scale(2.6); } }
+/* Die Karte ragt etwas in den Seitenrand, damit Teamnamen neben dem Live-Stand genauso viel
+   Platz haben wie in einer normalen Spielzeile. */
 .live-card {
-  margin: 4px 0 2px;
-  padding: 2px 14px;
+  margin: 4px -12px 2px;
+  padding: 2px 12px;
   border: 2px solid var(--mg);
   border-radius: 22px;
   background: var(--surface);
   box-shadow: 0 16px 30px -18px var(--mg);
 }
-.live-card .game:last-child { border-bottom: 0; }
+.live-game { display: flex; flex-direction: column; }
+.live-game + .live-game { border-top: 1px solid var(--line); }
+.live-card .game { border-bottom: 0; }
+.live-card .team-name { hyphens: auto; }
+/* Button bündig mit der Team-Spalte (52px Uhrzeit + 12px Abstand) */
+.live-ticker { align-self: flex-start; margin: 0 0 14px 64px; }
+.team-score.is-live { color: var(--mg); }
+.game-live-clock { display: block; margin-top: 1px; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 .game-matchday {
   font-size: 10px;
   font-weight: 600;

@@ -1,22 +1,26 @@
 import { state } from "../state.js";
 import {
   listGamesForSeason, listMatchdays, listBonusRounds, listBonusQuestionsForSeason,
-  getMyTip, setMyTip, getMyBonusAnswer, listTipsForGames, listUsers, tsToDate
+  getMyTip, setMyTip, getMyBonusAnswer, listTipsForGames, listUsers, watchGame, tsToDate
 } from "../data.js";
 import { el, toast, fmtDayShort, dayKey } from "../util.js";
 import {
   setTheme, poster, posterBar, brand, seasonChip, spacer, avatarLink, posterTitle, posterSub,
-  sticker, sheet, sectionHead, loadingView, emptyState, plural
+  sticker, sheet, sectionHead, loadingView, emptyState, plural, icon
 } from "../ui.js";
 import { renderGameRow, tipParticipantIds } from "./shared.js";
 
 const HORIZON_DAYS = 14;
 // So lange nach Anpfiff gilt ein Spiel ohne Ergebnis als laufend: Spielzeit samt Verlängerung plus
-// bis zu einer Stunde, bis der stündliche BBL-Abgleich das Ergebnis einträgt. Danach verschwindet
-// es von der Übersicht, auch falls das Ergebnis fehlt.
+// Reserve, bis der BBL-Bot das Ergebnis einträgt (im Live-Modus wenige Minuten nach Spielende).
+// Danach verschwindet es von der Übersicht, auch falls das Ergebnis fehlt.
 const LIVE_WINDOW_HOURS = 4;
 
+// Abmelden der Live-Aktualisierung der zuletzt angezeigten Übersicht.
+let stopLiveWatch = null;
+
 export async function renderDashboard(container) {
+  stopLiveWatch?.();
   setTheme("magenta");
   container.appendChild(loadingView("Lade offene Tipps …"));
 
@@ -104,22 +108,27 @@ export async function renderDashboard(container) {
   }
 
   const sheetItems = [];
+  // Laufende Spiele bleiben oben stehen (Tipp gesperrt, eigener Tipp sichtbar) und sind hervorgehoben.
+  // Zwischenstand und Endergebnis schreibt der BBL-Bot – die Karte aktualisiert sich dann von selbst.
+  const renderLiveGame = (game) => el("div", { class: "live-game" }, [
+    renderGameRow(game, { picked: tipByGame.get(game.id) }, {
+      seasonGames: games,
+      matchdayLabel: matchdayById[game.matchdayId]?.label,
+      roundTips: liveTipsByGame.get(game.id),
+      participantIds
+    }),
+    liveTickerLink(game)
+  ]);
+  const liveBlocks = new Map(live.map((game) => [game.id, { el: renderLiveGame(game), sig: liveSignature(game) }]));
+  const liveCard = el("div", { class: "live-card" }, [...liveBlocks.values()].map((b) => b.el));
   if (live.length) {
-    // Laufende Spiele bleiben oben stehen (Tipp gesperrt, eigener Tipp sichtbar) und sind hervorgehoben.
     sheetItems.push(
       el("div", { class: "sec-head" }, [
         el("h2", { class: "sec-title live-title" }, [el("span", { class: "live-dot", "aria-hidden": "true" }), "Live"]),
         el("div", { class: "sec-rule" }),
         el("div", { class: "sec-count" }, live.length === 1 ? "Läuft gerade" : `${live.length} Spiele laufen`)
       ]),
-      el("div", { class: "live-card" }, live.map((game) =>
-        renderGameRow(game, { picked: tipByGame.get(game.id) }, {
-          seasonGames: games,
-          matchdayLabel: matchdayById[game.matchdayId]?.label,
-          roundTips: liveTipsByGame.get(game.id),
-          participantIds
-        })
-      ))
+      liveCard
     );
   }
   if (!upcoming.length) {
@@ -148,6 +157,45 @@ export async function renderDashboard(container) {
 
   container.innerHTML = "";
   container.append(poster(headerItems), sheet(sheetItems));
+
+  if (live.length) {
+    const unsubscribers = live.map((game) => watchGame(game.id, (fresh) => {
+      if (!liveCard.isConnected) { stop(); return; } // Übersicht wurde inzwischen verlassen
+      const block = liveBlocks.get(game.id);
+      const sig = liveSignature(fresh);
+      if (sig === block.sig) return;
+      const next = renderLiveGame(fresh);
+      block.el.replaceWith(next);
+      liveBlocks.set(game.id, { el: next, sig });
+    }));
+    const stop = () => {
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+      if (stopLiveWatch === stop) stopLiveWatch = null;
+    };
+    stopLiveWatch = stop;
+  }
+}
+
+/** Was sich an einem laufenden Spiel für die Anzeige ändern kann (ohne den reinen Zeitstempel). */
+function liveSignature(game) {
+  const l = game.live || {};
+  return JSON.stringify([game.status, game.homeScore, game.awayScore, game.bblId, l.status, l.period, l.clock, l.home, l.away]);
+}
+
+/** Button zur Spielseite der BBL (Live-Ticker, nach dem Spiel Spielbericht). */
+function liveTickerLink(game) {
+  const finished = game.status === "finished";
+  const label = finished ? "Spielbericht" : "Live-Ticker";
+  const href = game.bblId
+    ? `https://www.easycredit-bbl.de/spiele/${encodeURIComponent(game.bblId)}`
+    : "https://www.easycredit-bbl.de/saison/aktuelle-spiele";
+  return el("a", {
+    class: "btn btn-ink btn-sm live-ticker",
+    href,
+    target: "_blank",
+    rel: "noopener",
+    "aria-label": `${label} bei der BBL: ${game.homeTeamName} – ${game.awayTeamName} (öffnet easycredit-bbl.de)`
+  }, [label, icon("external", 16, 2.2)]);
 }
 
 function groupByDay(games) {

@@ -1,7 +1,7 @@
 // Alle Firestore-Datenzugriffe an einem Ort.
 import {
   db, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-  query, where, serverTimestamp, Timestamp, writeBatch, arrayUnion
+  query, where, onSnapshot, serverTimestamp, Timestamp, writeBatch, arrayUnion
 } from "./firebase.js";
 import { suggestTeamCode } from "./util.js";
 
@@ -129,6 +129,17 @@ export async function listGamesForSeason(seasonId) {
   return snap.docs
     .map((d) => ({ id: d.id, ...d.data() }))
     .sort((a, b) => tsMillis(a.kickoff) - tsMillis(b.kickoff));
+}
+
+/**
+ * Beobachtet ein Spiel und ruft onChange(game) bei jeder Änderung auf – z. B. wenn der BBL-Bot
+ * im Live-Modus den Zwischenstand (game.live) oder das Endergebnis schreibt. Gibt die
+ * Abmelde-Funktion zurück.
+ */
+export function watchGame(gameId, onChange) {
+  return onSnapshot(doc(db, "games", gameId), (snap) => {
+    if (snap.exists()) onChange({ id: snap.id, ...snap.data() });
+  }, (err) => console.warn("Live-Aktualisierung unterbrochen:", err));
 }
 
 export async function listGamesForMatchday(matchdayId) {

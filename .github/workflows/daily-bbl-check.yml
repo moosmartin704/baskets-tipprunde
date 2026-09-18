@@ -3,23 +3,31 @@ name: Stündlicher BBL-Abgleich
 # Läuft jede volle Stunde (GitHub Actions kennt nur UTC-Cron, daher "0 * * * *"
 # statt einer lokalen Uhrzeit - das ist hier aber egal, da ohnehin stündlich
 # geprüft wird). Für ein öffentliches Repo sind GitHub-Actions-Minuten
-# unbegrenzt und kostenlos, der Lauf dauert nur ca. 20 Sekunden - stündlich
-# statt täglich kostet also nichts extra, sorgt aber dafür, dass Ergebnisse
-# spätestens eine Stunde nach Abpfiff automatisch eingetragen werden (ein
-# fester Versatz wie "2,5 Std. nach Anpfiff" wäre ungenauer, da Spiele durch
-# Verlängerung o. Ä. unterschiedlich lange dauern - und mit Cron ohnehin nicht
-# pro Spiel, sondern nur zu festen Uhrzeiten planbar). Außerhalb der
-# Spielzeiten findet der Job einfach nichts zu tun und beendet sich sofort.
-# Über "workflow_dispatch" lässt sich der Job auch jederzeit manuell auslösen
-# (z. B. zum Testen), unter dem Reiter "Actions" im GitHub-Repo.
+# unbegrenzt und kostenlos. Ohne Spiele in Reichweite dauert ein Lauf nur ca.
+# 20 Sekunden. Läuft gerade ein Spiel oder beginnt eines in der nächsten gut
+# einen Stunde, bleibt der Job im Live-Modus aktiv (Abfrage jede Minute,
+# Zwischenstand für die App, Endergebnis wenige Minuten nach Spielende) und
+# beendet sich erst, wenn keine Spiele mehr offen sind - höchstens nach 5,5
+# Stunden, danach übernimmt der nächste Lauf. Über "workflow_dispatch" lässt
+# sich der Job auch jederzeit manuell auslösen (z. B. zum Testen), unter dem
+# Reiter "Actions" im GitHub-Repo.
 on:
   schedule:
     - cron: "0 * * * *"
   workflow_dispatch: {}
 
+# Nie zwei Läufe gleichzeitig: Während ein Live-Modus läuft, wartet der nächste
+# stündliche Lauf, bis er fertig ist (GitHub hält höchstens einen Lauf in der
+# Warteschlange und bricht ältere wartende Läufe ab - die tauchen dann als
+# "cancelled" im Actions-Reiter auf, das ist gewollt).
+concurrency:
+  group: bbl-check
+  cancel-in-progress: false
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
 

@@ -8,6 +8,8 @@
 // 3. Fuer Spiele mit Endergebnis: traegt das Ergebnis DIREKT ein (kein Vorschlag,
 //    kein Admin-Klick noetig - wie von Martin gewuenscht). Admins koennen das
 //    Ergebnis wie gewohnt ueber "Ergebnis eintragen" korrigieren, falls noetig.
+//    Uebernommen wird nur ein offiziell bestaetigtes Ergebnis (BBL-Status
+//    "OFFICIAL") - waehrend des Spiels steht im selben Feld schon der Zwischenstand.
 // 4. Fuer Spiele mit abweichender Anstosszeit: legt einen Vorschlag in
 //    "pendingChanges" ab (wie bisher - landet im Tab "Aenderungen", muss von
 //    einem Admin bestaetigt werden). Grund: Anstoss-Verschiebungen sind zum
@@ -28,6 +30,14 @@
 //    die Push-Nachricht, sobald ein Heimspiel ins jeweils eingestellte
 //    Zeitfenster faellt (jede/r bekommt sie nur einmal pro Spiel).
 //
+// 8. Live-Modus: Laeuft gerade ein Spiel (oder beginnt eines in der naechsten gut
+//    einen Stunde), bleibt der Job nach dem Abgleich aktiv und fragt jede Minute
+//    die BBL-Seite der laufenden Spiele ab. Den Zwischenstand schreibt er nach
+//    games/{id}.live (die App zeigt ihn live an), das Endergebnis traegt er
+//    wenige Minuten nach Spielende ein und wertet sofort aus (Sieger-Push usw.).
+//    Zwischendurch laeuft der komplette Abgleich weiter einmal pro Stunde. Sind
+//    keine Spiele mehr offen, beendet sich der Job (siehe liveLoop()).
+//
 // Laeuft per GitHub Actions Cron (siehe .github/workflows/daily-bbl-check.yml)
 // mit einem Firebase-Dienstkonto (Admin SDK, umgeht die Firestore-Regeln
 // gezielt fuer diesen Bot - siehe README fuer Einrichtung).
@@ -44,7 +54,7 @@
 // ============================================================================
 
 import { initializeApp, cert } from "firebase-admin/app";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import {
   computeLeagueTable, allFinished, regularSeasonGames, computeMatchdayScores, matchdayWinners
@@ -52,6 +62,16 @@ import {
 
 const KICKOFF_DRIFT_MINUTES = 15; // ab wann eine Zeitabweichung als "echt" gilt (Rundungstoleranz)
 const BBL_URL = "https://www.easycredit-bbl.de/saison/aktuelle-spiele";
+const BBL_GAME_URL = (bblId) => `https://www.easycredit-bbl.de/spiele/${bblId}`;
+const USER_AGENT = "Mozilla/5.0 (compatible; BasketsTipprundeBot/1.0; +https://github.com/moosmartin704/baskets-tipprunde)";
+
+// Live-Modus (siehe liveLoop()):
+const LIVE_TICK_SECONDS = 60;          // Abfrage-Takt waehrend laufender Spiele
+const LIVE_LOOKAHEAD_MINUTES = 70;     // so frueh vor Anpfiff bleibt der Job schon aktiv (Cron ist stuendlich)
+const LIVE_WINDOW_HOURS = 4;           // so lange nach Anpfiff wird ein Spiel ohne Ergebnis beobachtet (wie js/views/dashboard.js)
+const LIVE_HEARTBEAT_MINUTES = 5;      // Live-Stand auch ohne Aenderung neu schreiben (z. B. Halbzeit), damit die App ihn nicht als veraltet verwirft
+const FULL_SYNC_EVERY_MINUTES = 60;    // kompletter Abgleich auch waehrend des Live-Modus einmal pro Stunde
+const MAX_RUN_MINUTES = 330;           // GitHub Actions bricht Jobs nach 6 h ab - vorher sauber beenden, der naechste Lauf macht weiter
 
 // Muss exakt zu js/data.js (BONN_TEAM_NAME) passen. Dort als Konstante exportiert, aber dieses
 // Node-Skript kann js/data.js nicht importieren (das haengt am Firebase-Web-SDK/Browser).
@@ -77,26 +97,8 @@ function initFirestore() {
  * Gibt ein flaches Array von Spielen zurueck: { home, away, scheduledTime, result }
  */
 async function fetchBblCurrentGames() {
-  const res = await fetch(BBL_URL, {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; BasketsTipprundeBot/1.0; +https://github.com/moosmartin704/baskets-tipprunde)" }
-  });
-  if (!res.ok) throw new Error(`BBL-Seite antwortete mit Status ${res.status}`);
-  const html = await res.text();
-
-  const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-  if (!match) {
-    throw new Error(
-      "Konnte __NEXT_DATA__ nicht in der BBL-Seite finden - vermutlich hat " +
-      "easycredit-bbl.de ihre Website-Technik geaendert. Skript muss angepasst werden."
-    );
-  }
-
-  let data;
-  try {
-    data = JSON.parse(match[1]);
-  } catch (err) {
-    throw new Error("__NEXT_DATA__ gefunden, aber kein gueltiges JSON: " + err.message);
-  }
+  const { html } = await fetchPage(BBL_URL);
+  const data = extractNextData(html);
 
   const widgetData = data?.props?.pageProps?.preloadedWidgetData;
   if (!widgetData) {
@@ -111,7 +113,7 @@ async function fetchBblCurrentGames() {
         ...(val.finishedGames.items || [])
       ];
       return items.map((g) => ({
-        bblId: g.id,
+        bblId: String(g.id),
         home: g.homeTeam?.name,
         away: g.guestTeam?.name,
         scheduledTime: g.scheduledTime,
@@ -124,18 +126,85 @@ async function fetchBblCurrentGames() {
   throw new Error("Widget mit scheduledGames/finishedGames nicht gefunden - Seitenstruktur hat sich geaendert.");
 }
 
+async function fetchPage(url) {
+  const res = await fetch(url, {
+    headers: { "User-Agent": USER_AGENT },
+    signal: AbortSignal.timeout(20000)
+  });
+  if (!res.ok) throw new Error(`BBL-Seite ${url} antwortete mit Status ${res.status}`);
+  return { html: await res.text(), cache: res.headers.get("x-nextjs-cache") };
+}
+
+function extractNextData(html) {
+  const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!match) {
+    throw new Error(
+      "Konnte __NEXT_DATA__ nicht in der BBL-Seite finden - vermutlich hat " +
+      "easycredit-bbl.de ihre Website-Technik geaendert. Skript muss angepasst werden."
+    );
+  }
+  try {
+    return JSON.parse(match[1]);
+  } catch (err) {
+    throw new Error("__NEXT_DATA__ gefunden, aber kein gueltiges JSON: " + err.message);
+  }
+}
+
 /**
- * Versucht aus dem BBL-"result"-Objekt ein {home, away}-Zahlenpaar zu lesen.
- * Das exakte Feldformat war zum Zeitpunkt der Entwicklung nicht verifizierbar
- * (Saison hatte noch nicht begonnen, alle result-Objekte waren leer "{}").
- * Deshalb bewusst defensiv: mehrere plausible Formate probieren, bei echten
- * (nicht-leeren) aber unbekannten Formaten laut warnen statt zu raten.
+ * Liest die Seite eines einzelnen Spiels (easycredit-bbl.de/spiele/<id>). Anders als die
+ * "Aktuelle Spiele"-Liste ist sie waehrend des Spiels nahezu in Echtzeit (am 18.09.2026 bei
+ * ALBA - Chemnitz gemessen: Abweichung zur Live-Anzeige unter 30 Sekunden; die Liste stand
+ * dagegen bis 14 Minuten nach Spielende auf "PRE").
+ * Die Seite wird per "stale-while-revalidate" ausgeliefert: Eine als STALE markierte Antwort
+ * stammt vom vorherigen Aufruf und stoesst im Hintergrund die Aktualisierung an - dann nach
+ * kurzer Pause ein zweites Mal abrufen, um den frischen Stand zu bekommen.
+ */
+async function fetchBblGame(bblId) {
+  let page = await fetchPage(BBL_GAME_URL(bblId));
+  if (page.cache === "STALE") {
+    await sleep(3000);
+    page = await fetchPage(BBL_GAME_URL(bblId));
+  }
+  const g = extractNextData(page.html)?.props?.pageProps?.initialGameData;
+  if (!g) throw new Error(`Keine initialGameData auf der BBL-Seite von Spiel ${bblId} - Seitenstruktur hat sich geaendert.`);
+  return {
+    bblId: String(g.id),
+    home: g.homeTeam?.name,
+    away: g.guestTeam?.name,
+    status: g.status,
+    period: g.gameProgress || null,
+    clock: g.gameTime || null,
+    result: g.result
+  };
+}
+
+/**
+ * Liest aus einem BBL-Spiel (Liste oder Einzelseite) das offizielle Endergebnis als
+ * {home, away}. Verifiziert am 18.09.2026: Die BBL liefert den Stand in
+ * result.homeTeamFinalScore/guestTeamFinalScore - und zwar schon WAEHREND des Spiels als
+ * Zwischenstand. Deshalb zaehlt er erst als Ergebnis, wenn der Status "OFFICIAL" ist
+ * (Ablauf: PRE -> LIVE -> POST beim Schlusspfiff -> OFFICIAL wenige Minuten spaeter).
  */
 function parseResult(bblGame) {
-  const r = bblGame.result;
+  if (bblGame.status !== "OFFICIAL") return null;
+  const score = parseScore(bblGame.result);
+  if (!score && bblGame.result && Object.keys(bblGame.result).length > 0) {
+    console.warn(
+      `  Unbekanntes Ergebnis-Format bei ${bblGame.home} - ${bblGame.away}, ` +
+      `wird ignoriert (bitte manuell in der Verwaltung eintragen): ${JSON.stringify(bblGame.result)}`
+    );
+  }
+  return score;
+}
+
+/** Spielstand {home, away} aus dem BBL-"result"-Objekt, egal ob Zwischen- oder Endstand. */
+function parseScore(r) {
   if (!r || typeof r !== "object") return null;
 
+  // Das erste Format ist das tatsaechlich verwendete, die weiteren sind Rueckfallebenen
+  // fuer den Fall, dass die BBL die Felder umbenennt.
   const candidates = [
+    [r.homeTeamFinalScore, r.guestTeamFinalScore],
     [r.homeScore, r.guestScore],
     [r.homeScore, r.awayScore],
     [r.home, r.guest],
@@ -146,18 +215,29 @@ function parseResult(bblGame) {
   for (const [h, a] of candidates) {
     if (typeof h === "number" && typeof a === "number") return { home: h, away: a };
   }
-
-  if (Object.keys(r).length > 0) {
-    console.warn(
-      `  Unbekanntes Ergebnis-Format bei ${bblGame.home} - ${bblGame.away}, ` +
-      `wird ignoriert (bitte manuell in der Verwaltung eintragen): ${JSON.stringify(r)}`
-    );
-  }
   return null;
 }
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Kompletter Abgleich, danach ggf. Live-Modus (siehe liveLoop()).
+ */
+async function main() {
+  // initializeApp() darf pro Prozess nur einmal aufgerufen werden - deshalb
+  // hier vor der Retry-Schleife und nicht in runOnce() (sonst "duplicate-app"
+  // Fehler beim zweiten Versuch).
+  const db = initFirestore();
+  const startedAt = Date.now();
+
+  const ctx = await runOnceWithRetry(db);
+  if (!ctx) return;
+  const hadErrors = await liveLoop(db, ctx, startedAt);
+  if (hadErrors) {
+    throw new Error("Im Live-Modus sind Fehler aufgetreten (siehe Log oben) - Job wird als fehlgeschlagen markiert.");
+  }
 }
 
 /**
@@ -169,17 +249,11 @@ function sleep(ms) {
  * Ausfuehren richtet keinen Schaden an), ein kompletter Neuversuch ist
  * deshalb sicher.
  */
-async function main() {
-  // initializeApp() darf pro Prozess nur einmal aufgerufen werden - deshalb
-  // hier vor der Retry-Schleife und nicht in runOnce() (sonst "duplicate-app"
-  // Fehler beim zweiten Versuch).
-  const db = initFirestore();
-
+async function runOnceWithRetry(db) {
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      await runOnce(db);
-      return;
+      return await runOnce(db);
     } catch (err) {
       const isQuotaError = err?.code === 8 || /RESOURCE_EXHAUSTED|Quota exceeded/i.test(String(err?.message));
       if (isQuotaError && attempt < maxAttempts) {
@@ -203,7 +277,7 @@ async function runOnce(db) {
     return;
   }
   const seasonId = seasonsSnap.docs[0].id;
-  console.log(`Aktive Saison: ${seasonId}`);
+  console.log(`[${berlinTime()}] Aktive Saison: ${seasonId}`);
 
   const gamesSnap = await db.collection("games").where("seasonId", "==", seasonId).get();
   const allGames = gamesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -230,22 +304,17 @@ async function runOnce(db) {
       continue;
     }
 
+    // --- BBL-ID merken: fuer den Live-Modus und den Live-Ticker-Link in der App ---
+    if (bg.bblId && ours.bblId !== bg.bblId) {
+      await db.collection("games").doc(ours.id).update({ bblId: bg.bblId });
+      ours.bblId = bg.bblId;
+    }
+
     // --- Ergebnis: automatisch uebernehmen, sofern noch nicht eingetragen ---
     const score = parseResult(bg);
     if (score) {
       if (ours.status !== "finished") {
-        await db.collection("games").doc(ours.id).update({
-          homeScore: score.home,
-          awayScore: score.away,
-          status: "finished"
-        });
-        // ours ist dieselbe Objektreferenz wie in allGames/gamesByTeams - direkt mitschreiben,
-        // damit z.B. die Bonusfragen- und Spieltagssieger-Auswertung weiter unten in diesem
-        // Lauf schon den aktuellen Stand sieht (sonst erst beim naechsten stuendlichen Lauf).
-        ours.homeScore = score.home;
-        ours.awayScore = score.away;
-        ours.status = "finished";
-        console.log(`Ergebnis eingetragen: ${bg.home} ${score.home}:${score.away} ${bg.away}`);
+        await applyFinalResult(db, ours, score);
         resultsApplied++;
       } else if (ours.homeScore !== score.home || ours.awayScore !== score.away) {
         console.warn(
@@ -303,6 +372,154 @@ async function runOnce(db) {
     `${winnersNotified} Spieltag(e) mit Sieger-Push benachrichtigt, ` +
     `${bonnRemindersSent} Bonn-Heimspiel-Erinnerung(en) verschickt.`
   );
+
+  return { seasonId, allGames };
+}
+
+/**
+ * Traegt ein Endergebnis ein und raeumt den Live-Stand weg. ours ist dieselbe Objektreferenz
+ * wie in allGames - direkt mitschreiben, damit z. B. die Bonusfragen- und Spieltagssieger-
+ * Auswertung im selben Lauf schon den aktuellen Stand sieht.
+ */
+async function applyFinalResult(db, ours, score) {
+  await db.collection("games").doc(ours.id).update({
+    homeScore: score.home,
+    awayScore: score.away,
+    status: "finished",
+    live: FieldValue.delete()
+  });
+  ours.homeScore = score.home;
+  ours.awayScore = score.away;
+  ours.status = "finished";
+  delete ours.live;
+  console.log(`Ergebnis eingetragen: ${ours.homeTeamName} ${score.home}:${score.away} ${ours.awayTeamName}`);
+}
+
+/** Spiele, fuer die der Live-Modus gerade zustaendig ist: offen und kurz vor, im oder kurz nach dem Anpfiff. */
+function gamesToWatch(allGames, now) {
+  return allGames.filter((g) => {
+    if (g.status === "finished" || !g.kickoff) return false;
+    const t = g.kickoff.toMillis();
+    return t <= now + LIVE_LOOKAHEAD_MINUTES * 60000 && t > now - LIVE_WINDOW_HOURS * 3600000;
+  });
+}
+
+/**
+ * Live-Modus: bleibt aktiv, solange ein Spiel laeuft oder bald beginnt, und fragt jede Minute
+ * die BBL-Seiten der laufenden Spiele ab. Der komplette Abgleich (runOnce) laeuft weiter einmal
+ * pro Stunde - und sofort, sobald ein Endergebnis eingetragen wurde (Sieger-Push, Bonusfragen).
+ * Gibt true zurueck, falls unterwegs ernsthafte Fehler aufgetreten sind (Job soll dann sichtbar
+ * fehlschlagen, laeuft aber bis dahin weiter). Einzelne Aussetzer der BBL-Seite zaehlen nicht -
+ * erst LIVE_MAX_FAILS Fehlschlaege in Folge fuer dasselbe Spiel (z. B. geaenderte Seitenstruktur).
+ */
+const LIVE_MAX_FAILS = 5;
+
+async function liveLoop(db, ctx, startedAt) {
+  let hadErrors = false;
+  let lastFullSync = Date.now();
+  let announced = false;
+  const warnedMissingId = new Set();
+  const failsInARow = new Map();
+
+  while (Date.now() - startedAt < MAX_RUN_MINUTES * 60000) {
+    const now = Date.now();
+    const watched = gamesToWatch(ctx.allGames, now);
+    if (!watched.length) break;
+    if (!announced) {
+      console.log(
+        `Live-Modus: ${watched.length} Spiel(e) laufen oder beginnen bald - Abfrage alle ${LIVE_TICK_SECONDS}s, ` +
+        `bis keine Spiele mehr offen sind (hoechstens ${MAX_RUN_MINUTES} Minuten).`
+      );
+      announced = true;
+    }
+
+    let resultApplied = false;
+    for (const game of watched.filter((g) => g.kickoff.toMillis() <= now)) {
+      if (!game.bblId) {
+        if (!warnedMissingId.has(game.id)) {
+          console.warn(`  Keine BBL-ID fuer ${game.homeTeamName} - ${game.awayTeamName} (noch nicht auf der BBL-Seite gefunden) - kein Live-Stand.`);
+          warnedMissingId.add(game.id);
+        }
+        continue;
+      }
+      try {
+        resultApplied = (await liveTick(db, game)) || resultApplied;
+        failsInARow.delete(game.id);
+      } catch (err) {
+        const fails = (failsInARow.get(game.id) || 0) + 1;
+        failsInARow.set(game.id, fails);
+        console.error(`  Live-Abfrage fuer ${game.homeTeamName} - ${game.awayTeamName} fehlgeschlagen (${fails}x in Folge):`, err.message);
+        if (fails >= LIVE_MAX_FAILS) hadErrors = true;
+      }
+    }
+
+    if (resultApplied || Date.now() - lastFullSync >= FULL_SYNC_EVERY_MINUTES * 60000) {
+      try {
+        ctx = (await runOnceWithRetry(db)) || ctx;
+      } catch (err) {
+        console.error("Abgleich im Live-Modus fehlgeschlagen:", err);
+        hadErrors = true;
+      }
+      lastFullSync = Date.now();
+    }
+
+    await sleep(LIVE_TICK_SECONDS * 1000);
+  }
+
+  if (announced) console.log(`[${berlinTime()}] Live-Modus beendet.`);
+  return hadErrors;
+}
+
+/**
+ * Ein Live-Abruf fuer ein angepfiffenes Spiel. Schreibt den Zwischenstand nach games/{id}.live
+ * (nur bei Aenderung bzw. als Lebenszeichen alle paar Minuten) oder, sobald die BBL das Ergebnis
+ * offiziell bestaetigt hat, das Endergebnis. Gibt true zurueck, wenn ein Endergebnis eingetragen wurde.
+ */
+async function liveTick(db, game) {
+  const bg = await fetchBblGame(game.bblId);
+  if (bg.home !== game.homeTeamName || bg.away !== game.awayTeamName) {
+    console.warn(`  BBL-Spiel ${game.bblId} ist ${bg.home} - ${bg.away}, erwartet ${game.homeTeamName} - ${game.awayTeamName} - uebersprungen.`);
+    return false;
+  }
+
+  const final = parseResult(bg);
+  if (final) {
+    // Frisch nachlesen: Hat ein Admin das Ergebnis inzwischen von Hand eingetragen, bleibt es dabei.
+    const current = await db.collection("games").doc(game.id).get();
+    if (current.data()?.status === "finished") {
+      game.status = "finished";
+      return false;
+    }
+    await applyFinalResult(db, game, final);
+    return true;
+  }
+
+  if (bg.status !== "LIVE" && bg.status !== "POST") return false; // z. B. noch "PRE" bei spaeterem Beginn
+
+  const score = parseScore(bg.result);
+  const live = {
+    status: bg.status,
+    period: bg.period,
+    clock: bg.clock,
+    home: score ? score.home : null,
+    away: score ? score.away : null
+  };
+  const prev = game.live;
+  const unchanged = prev && ["status", "period", "clock", "home", "away"].every((k) => prev[k] === live[k]);
+  const fresh = prev?.updatedAt && Date.now() - prev.updatedAt.toMillis() < LIVE_HEARTBEAT_MINUTES * 60000;
+  if (unchanged && fresh) return false;
+
+  live.updatedAt = Timestamp.now();
+  await db.collection("games").doc(game.id).update({ live });
+  game.live = live;
+  if (!unchanged) {
+    console.log(`  [${berlinTime()}] ${game.homeTeamName} ${live.home ?? "-"}:${live.away ?? "-"} ${game.awayTeamName} (${live.status} ${live.period || ""} ${live.clock || ""})`);
+  }
+  return false;
+}
+
+function berlinTime() {
+  return new Date().toLocaleTimeString("de-DE", { timeZone: "Europe/Berlin" });
 }
 
 /**

@@ -9,6 +9,9 @@ auf dem Handy (iOS & Android) wie eine App auf den Homescreen legen (PWA).
 - Jeder Spieltag wird einzeln ausgewertet (Spieltagssieger), zusätzlich zur Gesamtwertung.
 - Ab Anpfiff sieht jeder unter dem Spiel, wer wie getippt hat (Spieltag-Seite und „Live“ auf
   der Übersicht), bei Bonusfragen nach Ablauf der Frist. Vorher bleiben fremde Tipps verborgen.
+- Laufende Spiele stehen auf der Übersicht ganz oben im Block „Live“ – mit Spielstand, Viertel
+  und Restzeit (minütlich vom BBL-Bot aktualisiert, siehe Abschnitt 7) und einem Button zum
+  Live-Ticker auf easycredit-bbl.de.
 - Bonusfragen laufen als eigene "Bonusrunde" (wie ein zusätzlicher Spieltag), inkl. Fragen mit
   mehreren richtigen Antworten (z. B. "welche 8 Teams erreichen die Playoffs?").
 - Playoffs werden wie normale Spieltage abgebildet, jedes Spiel einzeln tippbar.
@@ -183,11 +186,21 @@ erhalten und ist über das Dropdown in der Verwaltung weiterhin einsehbar.
 
 Ein stündlicher GitHub-Actions-Job (`.github/workflows/daily-bbl-check.yml`, Skript in
 `scripts/daily-bbl-check/`) gleicht die aktive Saison automatisch mit der offiziellen
-easyCredit-BBL-Website ab. Stündlich statt nur einmal täglich, damit Ergebnisse spätestens eine
-Stunde nach Abpfiff eingetragen sind – für ein öffentliches Repo sind GitHub-Actions-Minuten
-unbegrenzt und kostenlos, der Lauf dauert nur ca. 20 Sekunden, häufiger prüfen kostet also nichts.
+easyCredit-BBL-Website ab – für ein öffentliches Repo sind GitHub-Actions-Minuten unbegrenzt und
+kostenlos. Ohne Spiele in Reichweite dauert ein Lauf nur ca. 20 Sekunden.
 
+- **Live-Modus:** Läuft gerade ein Spiel oder beginnt eines in der nächsten gut einen Stunde,
+  bleibt der Job aktiv und fragt jede Minute die BBL-Seite der laufenden Spiele ab
+  (`easycredit-bbl.de/spiele/<id>`, nahezu in Echtzeit). Den Zwischenstand schreibt er ins Spiel
+  (`games/{id}.live`), die Übersicht zeigt ihn ohne Neuladen an. Sind keine Spiele mehr offen,
+  beendet sich der Job (spätestens nach 5,5 Stunden, dann macht der nächste stündliche Lauf
+  weiter). Es läuft nie mehr als ein Job gleichzeitig. Kosten: praktisch keine – rund 150
+  Firestore-Schreibzugriffe pro Spiel (nur bei geändertem Stand) plus je ein Lesezugriff pro
+  offener Übersicht, weit im kostenlosen Tageskontingent.
 - **Ergebnisse** abgeschlossener Spiele werden **direkt eingetragen** – kein Admin-Klick nötig.
+  Übernommen wird ein Ergebnis erst, wenn die BBL es als offiziell markiert (Status `OFFICIAL`,
+  wenige Minuten nach Spielende; vorher steht im selben Feld schon der Zwischenstand). Im
+  Live-Modus ist das Ergebnis damit ca. 5 Minuten nach Abpfiff eingetragen und ausgewertet.
   Falls doch mal etwas nicht stimmt, bleibt das Ergebnis wie gewohnt über „Ergebnis eintragen“ in
   der Spieltag-Ansicht bzw. Verwaltung jederzeit korrigierbar.
 - **Anstoßzeit-Verschiebungen** landen weiterhin nur als Vorschlag im Tab **„Änderungen“** in der
@@ -199,8 +212,8 @@ unbegrenzt und kostenlos, der Lauf dauert nur ca. 20 Sekunden, häufiger prüfen
   dieselbe Tabellenberechnung wie auf der BBL-Tabelle-Seite (`js/standings-core.js`, wird von App
   und Bot gemeinsam genutzt).
 - Der Job prüft nur ein *nahes Zeitfenster* (die auf easycredit-bbl.de aktuell angezeigten
-  Spiele, grob die letzten/nächsten Tage). Das reicht zuverlässig für Ergebnisse (die erscheinen
-  ja unmittelbar nach Spielende), erkennt aber **keine langfristigen Verlegungen** (z. B. ein
+  Spiele, grob die letzten/nächsten Tage). Das reicht zuverlässig für Ergebnisse (die Liste zeigt
+  sie ca. 15 Minuten nach Spielende, im Live-Modus kommen sie direkt von der Spielseite), erkennt aber **keine langfristigen Verlegungen** (z. B. ein
   Spiel, das Monate im Voraus auf einen ganz anderen Termin verschoben wird) proaktiv – dafür
   bräuchte es einen aufwändigeren Voll-Saison-Abgleich, der von einer nicht offiziell
   dokumentierten Paginierung der BBL-Seite abhängt und entsprechend fehleranfälliger wäre. Solche
