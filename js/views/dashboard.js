@@ -1,14 +1,14 @@
 import { state } from "../state.js";
 import {
   listGamesForSeason, listMatchdays, listBonusRounds, listBonusQuestionsForSeason,
-  getMyTip, setMyTip, getMyBonusAnswer, tsToDate
+  getMyTip, setMyTip, getMyBonusAnswer, listTipsForGames, listUsers, tsToDate
 } from "../data.js";
 import { el, toast, fmtDayShort, dayKey } from "../util.js";
 import {
   setTheme, poster, posterBar, brand, seasonChip, spacer, avatarLink, posterTitle, posterSub,
   sticker, sheet, sectionHead, loadingView, emptyState, plural
 } from "../ui.js";
-import { renderGameRow } from "./shared.js";
+import { renderGameRow, tipParticipantIds } from "./shared.js";
 
 const HORIZON_DAYS = 14;
 // So lange nach Anpfiff gilt ein Spiel ohne Ergebnis als laufend: Spielzeit samt Verlängerung plus
@@ -51,11 +51,25 @@ export async function renderDashboard(container) {
   const bonusRoundById = Object.fromEntries(bonusRounds.map((b) => [b.id, b]));
   const openQuestions = bonusQuestions.filter((q) => !q.resolved && !isBonusRoundLocked(bonusRoundById[q.bonusRoundId]));
 
-  const [tips, answers] = await Promise.all([
-    Promise.all([...live, ...upcoming].map((g) => getMyTip(state.user.uid, g.id))),
+  // Für laufende Spiele die Tipps aller laden (sie sind angepfiffen, also sichtbar), für
+  // kommende nur den eigenen.
+  const [tips, liveTips, users, answers] = await Promise.all([
+    Promise.all(upcoming.map((g) => getMyTip(state.user.uid, g.id))),
+    live.length ? listTipsForGames(live.map((g) => g.id)) : [],
+    live.length ? listUsers() : null,
     Promise.all(openQuestions.map((q) => getMyBonusAnswer(state.user.uid, q.id)))
   ]);
-  const tipByGame = new Map([...live, ...upcoming].map((g, i) => [g.id, tips[i]?.picked || null]));
+  const tipByGame = new Map(upcoming.map((g, i) => [g.id, tips[i]?.picked || null]));
+  const liveTipsByGame = new Map(live.map((g) => [g.id, []]));
+  for (const t of liveTips) {
+    liveTipsByGame.get(t.gameId)?.push(t);
+    if (t.userId === state.user.uid) tipByGame.set(t.gameId, t.picked);
+  }
+  let participantIds = [];
+  if (users) {
+    state.usersById = Object.fromEntries(users.map((u) => [u.id, u]));
+    participantIds = tipParticipantIds(users);
+  }
   const unanswered = openQuestions.filter((q, i) => !answers[i]?.selected?.length);
 
   // Kopfbereich – Überschrift und Zeile darunter werden nach jedem Tipp aktualisiert.
@@ -101,7 +115,9 @@ export async function renderDashboard(container) {
       el("div", { class: "live-card" }, live.map((game) =>
         renderGameRow(game, { picked: tipByGame.get(game.id) }, {
           seasonGames: games,
-          matchdayLabel: matchdayById[game.matchdayId]?.label
+          matchdayLabel: matchdayById[game.matchdayId]?.label,
+          roundTips: liveTipsByGame.get(game.id),
+          participantIds
         })
       ))
     );

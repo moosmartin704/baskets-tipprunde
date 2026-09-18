@@ -2,6 +2,7 @@ import { el, fmtTime, toast } from "../util.js";
 import { gameWinner, teamForm } from "../scoring.js";
 import { tsToDate, setGameResult, clearGameResult } from "../data.js";
 import { icon, teamCode, teamTag } from "../ui.js";
+import { state, displayNameFor } from "../state.js";
 
 /**
  * Eine Spielzeile im Plakat-Stil: Uhrzeit | Teams mit Kürzel | Tipp-Kreise (bzw. Ergebnis-Stempel).
@@ -13,9 +14,12 @@ import { icon, teamCode, teamTag } from "../ui.js";
  * opts.matchdayLabel (optional): kurzes Label (z.B. "1. Spieltag"), erscheint klein unter der
  * Uhrzeit – sinnvoll überall dort, wo Spiele verschiedener Spieltage gemischt auftauchen (z.B.
  * "Offene Tipps" auf der Übersicht, da einzelne Spiele auf andere Termine verlegt sein können).
+ * opts.roundTips (optional): alle Tipps der Runde zu diesem Spiel. Werden erst ab Anpfiff unter der
+ * Zeile angezeigt – vorher bleiben fremde Tipps verborgen, egal was übergeben wird.
+ * opts.participantIds (optional): wer mittippt – wer davon keinen Tipp hat, steht unter „Kein Tipp“.
  */
 export function renderGameRow(game, myTip, opts = {}) {
-  const { onPick, seasonGames, adminEditor, matchdayLabel } = opts;
+  const { onPick, seasonGames, adminEditor, matchdayLabel, roundTips, participantIds } = opts;
   const kickoff = tsToDate(game.kickoff);
   const finished = game.status === "finished";
   const started = () => Date.now() >= kickoff.getTime();
@@ -91,8 +95,96 @@ export function renderGameRow(game, myTip, opts = {}) {
     row.appendChild(el("div", { class: "picks" }, [buttons.home, buttons.away]));
   }
 
+  if (roundTips && locked) row.appendChild(renderRoundTips(game, roundTips, participantIds, finished ? winner : null));
   if (adminEditor) row.appendChild(adminEditor.form);
   return row;
+}
+
+/** Wer hat bei diesem Spiel auf wen getippt: Verteilungsbalken und Namen je Seite. */
+function renderRoundTips(game, tips, participantIds, winner) {
+  const bySide = { home: [], away: [] };
+  for (const t of tips) bySide[t.picked]?.push(t.userId);
+  const total = bySide.home.length + bySide.away.length;
+  const missing = missingUserIds(participantIds, tips.map((t) => t.userId));
+  const sideClass = (side) => winner === "home" || winner === "away" ? (winner === side ? " is-win" : " is-lose") : "";
+
+  const head = el("div", { class: "round-tips-head" }, [
+    el("span", { class: "round-tips-side" + sideClass("home") }, `${teamCode(game.homeTeamName)} · ${bySide.home.length}`),
+    el("span", { class: "round-tips-side" + sideClass("away") }, `${bySide.away.length} · ${teamCode(game.awayTeamName)}`)
+  ]);
+  const bar = el("div", { class: "round-tips-bar", "aria-hidden": "true" }, ["home", "away"]
+    .filter((side) => bySide[side].length)
+    .map((side) => el("span", { class: `is-${side}${sideClass(side)}`, style: `flex-grow: ${bySide[side].length}` })));
+
+  return el("div", { class: "round-tips", role: "group", "aria-label": "Tipps der Runde" }, total ? [
+    head,
+    bar,
+    el("div", { class: "round-tips-names" }, [nameList(bySide.home), nameList(bySide.away)]),
+    missing.length ? el("div", { class: "round-tips-none" }, ["Kein Tipp: ", nameList(missing)]) : null
+  ] : [
+    el("div", { class: "round-tips-none" }, "Niemand hat getippt.")
+  ]);
+}
+
+/** Wer tippt mit: die Teilnehmer:innen der Kasse, sonst alle registrierten Nutzer:innen. */
+export function tipParticipantIds(users) {
+  const known = new Set(users.map((u) => u.id));
+  const ids = state.activeSeason?.money?.participantIds ?? users.map((u) => u.id);
+  return ids.filter((id) => known.has(id));
+}
+
+function missingUserIds(participantIds, answeredIds) {
+  const answered = new Set(answeredIds);
+  return (participantIds || []).filter((id) => !answered.has(id));
+}
+
+/** Namen alphabetisch, die eigene Person zuerst und als „Du“ hervorgehoben. */
+function nameList(userIds) {
+  const me = state.user?.uid;
+  const sorted = [...userIds].sort((a, b) =>
+    (b === me) - (a === me) || displayNameFor(a).localeCompare(displayNameFor(b), "de"));
+  const parts = [];
+  sorted.forEach((uid, i) => {
+    if (i) parts.push(", ");
+    parts.push(uid === me ? el("span", { class: "is-you" }, "Du") : displayNameFor(uid));
+  });
+  return el("span", {}, parts);
+}
+
+/**
+ * Antworten der Runde zu einer Bonusfrage (nur anzeigen, wenn nicht mehr geantwortet werden kann):
+ * pro gewählter Option Anzahl, Balken und Namen, richtige Optionen grün.
+ */
+export function renderBonusRoundAnswers(question, answers, participantIds) {
+  const correct = new Set(question.resolved ? (question.correctOptions || []) : []);
+  const given = answers.filter((a) => a.questionId === question.id && a.selected?.length);
+  const byOption = new Map(question.options.map((opt) => [opt, []]));
+  for (const a of given) for (const opt of a.selected) byOption.get(opt)?.push(a.userId);
+
+  const rows = question.options
+    .map((opt, i) => ({ opt, i, userIds: byOption.get(opt) }))
+    .filter((r) => r.userIds.length || correct.has(r.opt))
+    .sort((a, b) => b.userIds.length - a.userIds.length || a.i - b.i);
+  const missing = missingUserIds(participantIds, given.map((a) => a.userId));
+
+  return el("div", { class: "round-answers" }, [
+    el("div", { class: "question-kicker" }, "So hat die Runde getippt"),
+    given.length ? null : el("div", { class: "round-tips-none" }, "Niemand hat geantwortet."),
+    ...rows.map(({ opt, userIds }) => {
+      const isCorrect = correct.has(opt);
+      const share = given.length ? Math.round((userIds.length / given.length) * 100) : 0;
+      return el("div", { class: "round-answer" + (isCorrect ? " is-correct" : "") }, [
+        el("div", { class: "round-answer-head" }, [
+          isCorrect ? icon("check", 14, 3) : null,
+          el("span", { class: "round-answer-text" }, opt),
+          el("span", { class: "round-answer-count" }, String(userIds.length))
+        ]),
+        el("div", { class: "round-answer-bar", "aria-hidden": "true" }, [el("span", { style: `width: ${share}%` })]),
+        userIds.length ? el("div", { class: "round-answer-names" }, [nameList(userIds)]) : null
+      ]);
+    }),
+    given.length && missing.length ? el("div", { class: "round-tips-none" }, ["Keine Antwort: ", nameList(missing)]) : null
+  ]);
 }
 
 function teamLine(name, tag, score, seasonGames) {

@@ -8,7 +8,7 @@ import {
   setTheme, poster, posterBar, backLink, spacer, posterTitle, sheet, sectionHead,
   loadingView, emptyState, plural
 } from "../ui.js";
-import { renderGameRow, renderResultEditor, rankRow } from "./shared.js";
+import { renderGameRow, renderResultEditor, rankRow, tipParticipantIds } from "./shared.js";
 import { computeMatchdayScores, matchdayWinners } from "../scoring.js";
 
 export async function renderMatchdayDetail(container, { id }) {
@@ -38,6 +38,10 @@ export async function renderMatchdayDetail(container, { id }) {
   const myTipByGame = new Map(
     allTips.filter((t) => t.userId === state.user.uid).map((t) => [t.gameId, t.picked])
   );
+  // Tipps aller pro Spiel – die Spielzeile zeigt sie erst ab Anpfiff an.
+  const tipsByGame = new Map(games.map((g) => [g.id, []]));
+  for (const t of allTips) tipsByGame.get(t.gameId)?.push(t);
+  const participantIds = tipParticipantIds(users);
 
   // Spieltags-Tabelle und eigene Werte
   const scores = computeMatchdayScores(games, allTips);
@@ -110,6 +114,8 @@ export async function renderMatchdayDetail(container, { id }) {
     }
     gamesPane.appendChild(renderGameRow(game, { picked: myTipByGame.get(game.id) }, {
       seasonGames,
+      roundTips: tipsByGame.get(game.id),
+      participantIds,
       adminEditor: state.isAdmin ? renderResultEditor(game, rerender) : null,
       onPick: season ? async (picked) => {
         await setMyTip(state.user.uid, season.id, game.matchdayId, game.id, picked, game.kickoff);

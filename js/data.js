@@ -394,6 +394,14 @@ export async function listTipsForSeason(seasonId) {
   return snap.docs.map((d) => d.data());
 }
 
+/** Tipps aller Nutzer zu bestimmten Spielen (Firestore erlaubt max. 30 Werte pro „in“-Abfrage). */
+export async function listTipsForGames(gameIds) {
+  const chunks = [];
+  for (let i = 0; i < gameIds.length; i += 30) chunks.push(gameIds.slice(i, i + 30));
+  const snaps = await Promise.all(chunks.map((ids) => getDocs(query(col("tips"), where("gameId", "in", ids)))));
+  return snaps.flatMap((snap) => snap.docs.map((d) => d.data()));
+}
+
 export async function listMyTipsForSeason(uid, seasonId) {
   const all = await listTipsForSeason(seasonId);
   return all.filter((t) => t.userId === uid);

@@ -7,6 +7,8 @@ auf dem Handy (iOS & Android) wie eine App auf den Homescreen legen (PWA).
 - „Offene Tipps“ auf der Startseite zeigt alle Spiele der nächsten 14 Tage, unabhängig davon,
   an welchem Wochentag sie stattfinden.
 - Jeder Spieltag wird einzeln ausgewertet (Spieltagssieger), zusätzlich zur Gesamtwertung.
+- Ab Anpfiff sieht jeder unter dem Spiel, wer wie getippt hat (Spieltag-Seite und „Live“ auf
+  der Übersicht), bei Bonusfragen nach Ablauf der Frist. Vorher bleiben fremde Tipps verborgen.
 - Bonusfragen laufen als eigene "Bonusrunde" (wie ein zusätzlicher Spieltag), inkl. Fragen mit
   mehreren richtigen Antworten (z. B. "welche 8 Teams erreichen die Playoffs?").
 - Playoffs werden wie normale Spieltage abgebildet, jedes Spiel einzeln tippbar.

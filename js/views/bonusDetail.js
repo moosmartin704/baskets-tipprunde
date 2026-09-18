@@ -8,7 +8,7 @@ import {
   setTheme, poster, posterBar, backLink, spacer, posterTitle, posterSub, sheet,
   loadingView, emptyState
 } from "../ui.js";
-import { renderBonusQuestion, rankRow } from "./shared.js";
+import { renderBonusQuestion, renderBonusRoundAnswers, rankRow, tipParticipantIds } from "./shared.js";
 import { computeBonusRoundScores } from "../scoring.js";
 
 export async function renderBonusDetail(container, { id }) {
@@ -67,13 +67,17 @@ export async function renderBonusDetail(container, { id }) {
   } else if (!questions.length) {
     questionsPane.appendChild(emptyState("Noch leer", "Für diese Runde sind noch keine Fragen angelegt."));
   }
+  const participantIds = tipParticipantIds(users);
   questions.forEach((q, i) => {
     const questionLocked = locked || q.resolved;
-    questionsPane.appendChild(renderBonusQuestion(q, myAnswers[i], async (selected) => {
+    const questionEl = renderBonusQuestion(q, myAnswers[i], async (selected) => {
       await setMyBonusAnswer(state.user.uid, season.id, q.bonusRoundId, q.id, selected, br?.deadline || null);
       toast("Antwort gespeichert", "success");
       rerender();
-    }, questionLocked, i));
+    }, questionLocked, i);
+    // Antworten der anderen erst, wenn niemand mehr antworten kann.
+    if (questionLocked) questionEl.appendChild(renderBonusRoundAnswers(q, allAnswers, participantIds));
+    questionsPane.appendChild(questionEl);
     if (state.isAdmin) questionsPane.appendChild(renderResolvePanel(q, rerender));
   });
 

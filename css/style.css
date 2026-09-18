@@ -531,6 +531,38 @@ body[data-theme="magenta"] .stat-label { color: rgba(255, 255, 255, 0.85); }
 .stamp.is-bad { background: var(--surface); color: var(--bad); border: 2px solid var(--bad); }
 .stamp.is-none { color: var(--faint); border: 2px dashed var(--paper-2); }
 
+/* Tipps der Runde – erst ab Anpfiff unter der Spielzeile */
+.round-tips { grid-column: 2 / -1; display: flex; flex-direction: column; gap: 6px; margin-top: -2px; }
+.round-tips-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.round-tips-side.is-win { color: var(--ok-ink); }
+.round-tips-side.is-lose { color: var(--faint); }
+.round-tips-bar { display: flex; gap: 3px; height: 8px; }
+.round-tips-bar > span { flex-basis: 0; min-width: 8px; border-radius: 999px; }
+.round-tips-bar > .is-home { background: var(--ink); }
+.round-tips-bar > .is-away { background: var(--faint); }
+.round-tips-bar > .is-win { background: var(--ok); }
+.round-tips-bar > .is-lose { background: var(--paper-2); }
+.round-tips-names {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.round-tips-names > :last-child { text-align: right; }
+.round-tips-none { font-size: 12px; line-height: 1.4; color: var(--faint); }
+.round-tips .is-you, .round-answers .is-you { color: var(--mg-deep); font-weight: 700; }
+
 /* Admin: Ergebnis eintragen / Frage auflösen */
 .admin-link {
   align-self: flex-start;
@@ -748,6 +780,18 @@ table.league .is-minus { color: var(--bad); }
 .option.is-wrong { border-color: var(--bad); background: var(--bad-soft); }
 .option.is-wrong .check { border-color: var(--bad); background: var(--bad); color: #FFFFFF; }
 .option.is-disabled { cursor: default; }
+
+/* Antworten der Runde – erst nach Ablauf der Frist */
+.round-answers { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; padding-top: 14px; border-top: 2px dashed var(--paper-2); }
+.round-answer { display: flex; flex-direction: column; gap: 5px; }
+.round-answer-head { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; }
+.round-answer-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.round-answer-count { font-family: var(--font-display); font-size: 18px; line-height: 1; }
+.round-answer-bar { height: 6px; border-radius: 999px; background: var(--paper-2); overflow: hidden; }
+.round-answer-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--ink); }
+.round-answer.is-correct .round-answer-head { color: var(--ok-ink); }
+.round-answer.is-correct .round-answer-bar > span { background: var(--ok); }
+.round-answer-names { font-size: 12px; line-height: 1.4; color: var(--muted); }
 
 .check-list { display: flex; flex-direction: column; gap: 6px; }
 .check-item {
