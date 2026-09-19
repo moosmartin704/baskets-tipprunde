@@ -582,31 +582,65 @@ function displayName(user) {
   return user?.displayName || user?.email || "Jemand";
 }
 
+// FCM-Fehlercodes, bei denen ein Geraetetoken endgueltig ungueltig ist (App deinstalliert,
+// Benachrichtigungen im Browser entzogen, Token erneuert). Solche Tokens werden aus
+// users/{uid}.fcmTokens entfernt, damit sie nicht bei jedem Versand wieder scheitern.
+const DEAD_TOKEN_CODES = new Set([
+  "messaging/registration-token-not-registered",
+  "messaging/invalid-registration-token"
+]);
+
 /**
  * Sendet eine Push-Nachricht an eine Liste von Nutzer:innen (anhand ihrer fcmTokens).
- * Ignoriert Nutzer:innen ohne Token. Loggt Fehler pro Token, bricht aber nicht ab -
+ * Ignoriert Nutzer:innen ohne Token. Loggt Fehler pro Token mit Grund, bricht aber nicht ab -
  * ein einzelner ungueltiger/abgelaufener Token soll nicht den ganzen Lauf stoppen.
+ * Gibt { sent, deliveredTo } zurueck: Anzahl der von FCM angenommenen Zustellungen und die
+ * IDs der Nutzer:innen, bei denen mindestens ein Geraet die Nachricht bekommen hat.
+ * Hinweis: "angenommen" heisst, FCM hat die Nachricht an den Push-Dienst des Geraets
+ * weitergegeben - die Anzeige uebernimmt dann service-worker.js.
  */
-async function sendPush(recipients, { title, body }) {
-  const tokens = recipients.flatMap((u) => u.fcmTokens || []);
-  if (!tokens.length) return 0;
+async function sendPush(db, recipients, { title, body }) {
+  const entries = recipients.flatMap((u) => (u.fcmTokens || []).map((token) => ({ user: u, token })));
+  const deliveredTo = new Set();
+  if (!entries.length) return { sent: 0, deliveredTo };
+  let res;
   try {
-    // "data"-Payload statt "notification": bei "notification"-Payloads zeigt der Browser die
-    // Nachricht im Hintergrund automatisch an UND der onBackgroundMessage-Handler in
-    // service-worker.js feuert zusaetzlich - das fuehrte zu doppelten Benachrichtigungen.
-    // Mit reinem "data"-Payload uebernimmt ausschliesslich der Service-Worker-Handler die Anzeige.
-    const res = await getMessaging().sendEachForMulticast({
-      tokens,
+    // "data"-Payload statt "notification": die Anzeige uebernimmt ausschliesslich der
+    // push-Handler in service-worker.js (so gibt es nie doppelte Benachrichtigungen).
+    res = await getMessaging().sendEachForMulticast({
+      tokens: entries.map((e) => e.token),
       data: { title, body }
     });
-    if (res.failureCount) {
-      console.warn(`  ${res.failureCount}/${tokens.length} Push-Zustellung(en) fehlgeschlagen (z.B. abgelaufene Tokens).`);
-    }
-    return res.successCount;
   } catch (err) {
     console.warn("  Push-Versand fehlgeschlagen:", err.message);
-    return 0;
+    return { sent: 0, deliveredTo };
   }
+
+  const deadTokensByUser = new Map();
+  res.responses.forEach((r, i) => {
+    const { user, token } = entries[i];
+    if (r.success) {
+      deliveredTo.add(user.id);
+      return;
+    }
+    const code = r.error?.code || "unbekannt";
+    console.warn(`  Push an ${displayName(user)} fehlgeschlagen: ${code} (${r.error?.message || "ohne Meldung"})`);
+    if (DEAD_TOKEN_CODES.has(code)) {
+      if (!deadTokensByUser.has(user.id)) deadTokensByUser.set(user.id, []);
+      deadTokensByUser.get(user.id).push(token);
+    }
+  });
+
+  for (const [uid, tokens] of deadTokensByUser) {
+    try {
+      await db.collection("users").doc(uid).update({ fcmTokens: FieldValue.arrayRemove(...tokens) });
+      console.log(`  ${tokens.length} ungueltige(s) Geraetetoken bei ${displayName(recipients.find((u) => u.id === uid))} entfernt.`);
+    } catch (err) {
+      console.warn("  Konnte ungueltige Tokens nicht entfernen:", err.message);
+    }
+  }
+
+  return { sent: res.successCount, deliveredTo };
 }
 
 /**
@@ -639,7 +673,7 @@ async function notifyMatchdayWinners(db, seasonId, allGames, matchdays, users) {
       : "Ausgewertet - diesmal ohne eindeutigen Sieger.";
 
     const recipients = users.filter((u) => u.notifyMatchdayWinner !== false && u.fcmTokens?.length);
-    const sent = await sendPush(recipients, { title: `🏀 ${md.label} beendet`, body });
+    const { sent } = await sendPush(db, recipients, { title: `🏀 ${md.label} beendet`, body });
 
     await db.collection("matchdays").doc(md.id).update({ winnerNotifiedAt: Timestamp.now() });
     console.log(`Spieltag "${md.label}" komplett beendet -> Sieger-Push an ${sent} Geraet(e) verschickt.`);
@@ -697,18 +731,28 @@ async function sendBonnReminders(db, seasonId, allGames, users) {
     const kickoffLabel = new Date(game.kickoffMs).toLocaleString("de-DE", {
       weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin"
     });
-    const sent = await sendPush(dueUsers.map((d) => d.user), {
+    const { sent, deliveredTo } = await sendPush(db, dueUsers.map((d) => d.user), {
       title: "🏀 Heimspiel steht an",
       body: `Bonn – ${game.opponent} · ${kickoffLabel} Uhr (${COMPETITION_LABELS[game.competition] || game.competition})`
     });
     sentCount += sent;
 
-    const batch = db.batch();
-    for (const { remindKey } of dueUsers) {
-      batch.set(db.collection("remindersSent").doc(remindKey), { sentAt: Timestamp.now() });
+    // Nur als erledigt vermerken, wer die Nachricht auch bekommen hat - bei allen anderen
+    // versucht es der naechste Lauf erneut (bis zum Anpfiff). Wessen Tokens alle ungueltig
+    // waren, hat danach keine mehr und faellt oben aus withReminder heraus.
+    const delivered = dueUsers.filter(({ user }) => deliveredTo.has(user.id));
+    if (delivered.length) {
+      const batch = db.batch();
+      for (const { remindKey } of delivered) {
+        batch.set(db.collection("remindersSent").doc(remindKey), { sentAt: Timestamp.now() });
+      }
+      await batch.commit();
     }
-    await batch.commit();
-    console.log(`Heimspiel-Erinnerung fuer Bonn – ${game.opponent} an ${sent} Geraet(e) verschickt.`);
+    console.log(
+      `Heimspiel-Erinnerung fuer Bonn – ${game.opponent}: an ${delivered.length} von ${dueUsers.length} Person(en) ` +
+      `zugestellt (${sent} Geraet(e))` +
+      (delivered.length < dueUsers.length ? " - die uebrigen werden im naechsten Lauf erneut versucht." : ".")
+    );
   }
 
   return sentCount;

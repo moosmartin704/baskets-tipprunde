@@ -1,4 +1,4 @@
-const CACHE_NAME = "baskets-tipprunde-v16";
+const CACHE_NAME = "baskets-tipprunde-v17";
 const FONT_CACHE = "baskets-tipprunde-fonts-v1";
 const APP_SHELL = [
   "./",
@@ -32,39 +32,33 @@ const APP_SHELL = [
 ];
 
 // ----------------------------------------------------------------------------
-// Push-Benachrichtigungen (Firebase Cloud Messaging) im Hintergrund empfangen.
-// WICHTIG: Diese Werte müssen exakt mit js/firebase-config.js übereinstimmen.
-// Ein Service Worker kann keine ES-Module importieren, daher hier dupliziert.
+// Push-Benachrichtigungen (Firebase Cloud Messaging) anzeigen.
+// Bewusst ein eigener "push"-Handler statt firebase-messaging-compat mit
+// onBackgroundMessage: Die Firebase-Bibliothek zeigt Nachrichten nur an, solange die
+// App im Hintergrund ist - ist sie offen, reicht sie die Nachricht an die Seite weiter,
+// und dort gab es keinen Empfänger (am 19.09.2026 ging so eine Bonn-Erinnerung verloren,
+// obwohl FCM sie angenommen hatte). Außerdem wartet event.waitUntil() jetzt, bis die
+// Benachrichtigung wirklich angezeigt ist - sonst kann v. a. iOS den Service Worker
+// vorher beenden. Der Bot und die Ankündigung schicken reine "data"-Payloads
+// ({ data: { title, body } }, siehe scripts/*/*.mjs); ein "notification"-Payload würde
+// hier genauso angezeigt, aber nie doppelt, da es keinen zweiten Handler mehr gibt.
+// Das Gerätetoken holt weiterhin die Seite (js/views/profile.js, getToken mit dieser
+// Service-Worker-Registrierung) - dafür braucht der Service Worker kein Firebase.
 // ----------------------------------------------------------------------------
-try {
-  importScripts(
-    "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js",
-    "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"
-  );
-  firebase.initializeApp({
-    apiKey: "AIzaSyCYYNvfoG43Xr9l23RVxlEDYkkSMPwRLY8",
-    authDomain: "baskets-tipprunde.firebaseapp.com",
-    projectId: "baskets-tipprunde",
-    storageBucket: "baskets-tipprunde.firebasestorage.app",
-    messagingSenderId: "761869689864",
-    appId: "1:761869689864:web:8c015489d3bef8d6049dbd"
-  });
-  // Bewusst ein "data"-Payload (siehe js/data.js sendPush und scripts/*/*.mjs), kein
-  // "notification"-Payload: Bei "notification"-Payloads zeigt der Browser die
-  // Benachrichtigung im Hintergrund selbst automatisch an UND dieser Handler hier feuert
-  // zusätzlich - das führte zu doppelten Benachrichtigungen pro Push. Mit reinem
-  // "data"-Payload übernimmt ausschließlich dieser Handler die Anzeige, kein Duplikat mehr.
-  const messaging = firebase.messaging();
-  messaging.onBackgroundMessage((payload) => {
-    const title = payload.data?.title || "Baskets Tipprunde";
-    const body = payload.data?.body || "";
-    self.registration.showNotification(title, {
-      body, icon: "icons/icon-192.png", badge: "icons/icon-192.png"
-    });
-  });
-} catch (err) {
-  console.warn("Firebase Messaging im Service Worker nicht verfügbar:", err);
-}
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (err) {
+    payload = { data: { body: event.data?.text() || "" } };
+  }
+  const data = payload.data || {};
+  const title = data.title || payload.notification?.title || "Baskets Tipprunde";
+  const body = data.body || payload.notification?.body || "";
+  event.waitUntil(self.registration.showNotification(title, {
+    body, icon: "icons/icon-192.png", badge: "icons/icon-192.png"
+  }));
+});
 
 // Ohne diesen Handler passiert beim Antippen einer Hintergrund-Benachrichtigung nichts
 // (v.a. auf Android/Chrome) - er öffnet ein vorhandenes Tab (fokussiert es) oder startet

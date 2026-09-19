@@ -258,10 +258,9 @@ Damit das tatsächlich funktioniert, fehlen noch zwei Dinge:
 
 1. **Cloud Messaging aktivieren:** Firebase-Konsole → Projekteinstellungen → Tab
    **Cloud Messaging** → unter „Web-Push-Zertifikate“ ein Schlüsselpaar generieren → den Wert in
-   [`js/firebase-config.js`](js/firebase-config.js) bei `vapidKey` eintragen. Außerdem die
-   `firebaseConfig`-Werte (dieselben wie in `firebase-config.js`) oben in
-   [`service-worker.js`](service-worker.js) eintragen (ein Service Worker kann die Werte nicht
-   direkt aus der App-Datei importieren, deshalb stehen sie dort zusätzlich einmal).
+   [`js/firebase-config.js`](js/firebase-config.js) bei `vapidKey` eintragen. Die Anzeige der
+   Nachrichten übernimmt ein eigener `push`-Handler in [`service-worker.js`](service-worker.js) –
+   auch dann, wenn die App gerade geöffnet ist.
 2. **Den stündlichen Versand einrichten:** Ein Cloud-Agent (ähnlich wie der tägliche
    Spielplan-Check) müsste stündlich prüfen, welche Spiele/Bonusfragen in den nächsten X Stunden
    fällig sind, wer dafür noch nicht getippt hat (und noch keine Erinnerung dafür bekommen hat –
