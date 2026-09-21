@@ -8,7 +8,9 @@ import { state, displayNameFor } from "../state.js";
  * Eine Spielzeile im Plakat-Stil: Uhrzeit | Teams mit Kürzel | Tipp-Kreise (bzw. Ergebnis-Stempel).
  * opts.onPick(side) speichert einen Tipp ("home"/"away") und darf eine Promise zurückgeben;
  * die Zeile zeigt den neuen Tipp sofort an und springt bei einem Fehler zurück.
- * opts.seasonGames (optional): alle Spiele der Saison, um die Form der Teams anzuzeigen.
+ * opts.seasonGames (optional): alle Spiele der Saison, um die Form der Teams anzuzeigen. Die
+ * Form steht nur bei Spielen, die noch laufen oder bevorstehen – bei beendeten Spielen zählt
+ * das Ergebnis, nicht mehr die Form davor.
  * opts.adminEditor (optional): Ergebnis-Eingabe aus renderResultEditor() – der Link landet unter
  * der Uhrzeit, das Formular klappt unter der Zeile auf.
  * opts.matchdayLabel (optional): kurzes Label (z.B. "1. Spieltag"), erscheint klein unter der
@@ -43,8 +45,8 @@ export function renderGameRow(game, myTip, opts = {}) {
   ]);
 
   const teamsCol = el("div", { class: "game-teams" }, [
-    teamLine(game.homeTeamName, homeTag, finished ? scoreEl(game.homeScore, winner !== "home") : liveScore(live, "home"), seasonGames),
-    teamLine(game.awayTeamName, awayTag, finished ? scoreEl(game.awayScore, winner !== "away") : liveScore(live, "away"), seasonGames)
+    teamLine(game.homeTeamName, homeTag, finished ? scoreEl(game.homeScore, winner !== "home") : liveScore(live, "home"), finished ? null : seasonGames),
+    teamLine(game.awayTeamName, awayTag, finished ? scoreEl(game.awayScore, winner !== "away") : liveScore(live, "away"), finished ? null : seasonGames)
   ]);
 
   const row = el("div", { class: "game" }, [timeCol, teamsCol]);
@@ -242,13 +244,19 @@ function resultStamp(winner, picked) {
   return el("div", { class: "stamp is-bad", title: "Falsch getippt", "aria-label": "Falsch getippt, 0 Punkte" }, "0");
 }
 
+/**
+ * Form der letzten Spiele als kleine Symbol-Kreise in einer eigenen Zeile unter dem Teamnamen:
+ * Sieg als gefüllter Kreis mit Haken, Niederlage als heller Kreis mit Kreuz. Bewusst nicht nur über die Farbe unterschieden
+ * (Symbol und gefüllt/ungefüllt kommen dazu), damit es auch mit einer Rot-Grün-Schwäche
+ * eindeutig bleibt.
+ */
 function formDots(seasonGames, teamName) {
   if (!seasonGames) return null;
   const letters = teamForm(seasonGames, teamName, 5);
   if (!letters.length) return null;
   const label = `Form der letzten Spiele (älteste zuerst): ${letters.map((l) => (l === "S" ? "Sieg" : "Niederlage")).join(", ")}`;
   return el("span", { class: "form-dots", title: label, "aria-label": label },
-    letters.map((l) => el("i", { class: l === "S" ? "w" : "" })));
+    letters.map((l) => el("i", { class: l === "S" ? "w" : "" }, icon(l === "S" ? "check" : "x", 8, 5.5))));
 }
 
 /** Zeile einer Rangliste (Spieltag, Bonusrunde, Gesamtwertung). */

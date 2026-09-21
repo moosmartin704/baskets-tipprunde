@@ -491,9 +491,22 @@ body[data-theme="magenta"] .stat-label { color: rgba(255, 255, 255, 0.85); }
 }
 .tag.is-picked { background: var(--mg); color: #FFFFFF; }
 
-.form-dots { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: 1px; }
-.form-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--bad); }
-.form-dots i.w { background: var(--ok); }
+/* Form der letzten Spiele: Symbol plus gefüllt/ungefüllt, nicht nur Farbe (Rot-Grün-Schwäche). */
+/* Eigene Zeile unter dem Teamnamen, damit die Reihe überall gleich sitzt. */
+.form-dots { display: flex; gap: 3px; margin: 3px 0 1px; }
+.form-dots i {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1.5px solid var(--bad);
+  color: var(--bad);
+}
+.form-dots i.w { background: var(--ok); border-color: var(--ok); color: #FFFFFF; }
 
 .picks { display: flex; gap: 6px; }
 .pick {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "baskets-tipprunde-v17";
+const CACHE_NAME = "baskets-tipprunde-v18";
 const FONT_CACHE = "baskets-tipprunde-fonts-v1";
 const APP_SHELL = [
   "./",
