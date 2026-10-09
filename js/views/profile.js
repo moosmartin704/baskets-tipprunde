@@ -38,6 +38,15 @@ export async function renderProfile(container) {
     el("div", { class: "list-end" }, icon("chevR", 20, 2))
   ]));
 
+  items.push(el("a", { class: "list-link is-feature", href: "#/basketball" }, [
+    el("div", { class: "icon-badge" }, icon("ball", 22)),
+    el("div", { class: "list-body" }, [
+      el("div", { class: "list-title" }, "Basketball-ABC"),
+      el("div", { class: "list-sub" }, "Regeln, Fouls, Positionen & Spielzüge erklärt")
+    ]),
+    el("div", { class: "list-end" }, icon("chevR", 20, 2))
+  ]));
+
   items.push(el("a", { class: "list-link is-feature", href: "#/kasse" }, [
     el("div", { class: "icon-badge" }, icon("wallet", 22)),
     el("div", { class: "list-body" }, [

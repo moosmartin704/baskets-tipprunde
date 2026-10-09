@@ -7,6 +7,7 @@ import { listTeams } from "./data.js";
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 const ICONS = {
+  ball: '<circle cx="12" cy="12" r="8.5"></circle><path d="M3.5 12h17M12 3.5v17M6.2 5.9c2.6 2.4 2.6 9.8 0 12.2M17.8 5.9c-2.6 2.4-2.6 9.8 0 12.2"></path>',
   home: '<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"></path>',
   cal: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path>',
   table: '<rect x="3.5" y="4.5" width="17" height="15" rx="3"></rect><path d="M3.5 9.5h17M3.5 14.5h17M9 4.5v15"></path>',
